@@ -1,41 +1,42 @@
-#include <Arduino.h>  
+#include <Arduino.h>
 #include <WiFi.h>
 #include <SPI.h>
 #include <MFRC522.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
-#include <SPIFFS.h> //system to read files and use portion of flash memory of ESP32 for it 
+#include <SPIFFS.h> //system to read files and use portion of flash memory of ESP32 for it
 
 // Definir los pines SPI
-#define SS_PIN 21    // GPIO 21
-#define RST_PIN 22   // GPIO 22
-#define MOSI_PIN 23  // GPIO 23
-#define MISO_PIN 19  // GPIO 19
-#define SCK_PIN 18   // GPIO 18
+#define SS_PIN 21   // GPIO 21
+#define RST_PIN 22  // GPIO 22
+#define MOSI_PIN 23 // GPIO 23
+#define MISO_PIN 19 // GPIO 19
+#define SCK_PIN 18  // GPIO 18
 
-const char* ssid = "AEG-IKASLE";       // Wi-Fi SSID
-const char* password = "Ea25dneAEG";  // Wi-Fi Password
-const int mqtt_port = 1883;            // Port for MQTT over TLS/SSL
-const char* mqtt_server = "10.80.128.11"; // local mosquitto runs in ip machine network
+const char *ssid = "AEG-IKASLE";          // Wi-Fi SSID
+const char *password = "Ea25dneAEG";      // Wi-Fi Password
+const int mqtt_port = 1883;               // Port for MQTT over TLS/SSL
+const char *mqtt_server = "10.80.128.11"; // local mosquitto runs in ip machine network
 
-WiFiClientSecure espClient;  // Secure Wi-Fi Client
-PubSubClient client(espClient);  // MQTT client
+WiFiClient espClient;     // Secure Wi-Fi Client
+PubSubClient client(espClient); // MQTT client
 
 // Function to read file from SPIFFS
-String readFile(const char* path) {
-    File file = SPIFFS.open(path, "r");
-    if (!file) {
-        Serial.printf("Failed to open file for reading: %s\n", path);
-        return String();
-    }
-    String content = file.readString();
-    file.close();
-    return content;
+String readFile(const char *path)
+{
+  File file = SPIFFS.open(path, "r");
+  if (!file)
+  {
+    Serial.printf("Failed to open file for reading: %s\n", path);
+    return String();
+  }
+  String content = file.readString();
+  file.close();
+  return content;
 }
 
 MFRC522 rfid(SS_PIN, RST_PIN); // Instancia de la clase
 MFRC522::MIFARE_Key key;
-
 
 // Array para almacenar el NUID
 byte nuidPICC[4];
@@ -43,11 +44,16 @@ byte nuidPICC[4];
 /**
  * Rutina auxiliar para mostrar un array de bytes en formato hexadecimal.
  */
-void printHex(byte *buffer, byte bufferSize) {
-  for (byte i = 0; i < bufferSize; i++) {
-    if (buffer[i] < 0x10) {
+void printHex(byte *buffer, byte bufferSize)
+{
+  for (byte i = 0; i < bufferSize; i++)
+  {
+    if (buffer[i] < 0x10)
+    {
       Serial.print(" 0");
-    } else {
+    }
+    else
+    {
       Serial.print(" ");
     }
     Serial.print(buffer[i], HEX);
@@ -57,74 +63,87 @@ void printHex(byte *buffer, byte bufferSize) {
 /**
  * Rutina auxiliar para mostrar un array de bytes en formato decimal.
  */
-void printDec(byte *buffer, byte bufferSize) {
-  for (byte i = 0; i < bufferSize; i++) {
+void printDec(byte *buffer, byte bufferSize)
+{
+  for (byte i = 0; i < bufferSize; i++)
+  {
     Serial.print(' ');
     Serial.print(buffer[i], DEC);
+  }
 }
-}
-void reconnect() {
+void reconnect()
+{
   // Loop until we're reconnected
-  while (!client.connected()) {
+  while (!client.connected())
+  {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("ESP32_Client")) {
+    if (client.connect("ESP32_MendiHouse"))
+    {
       Serial.println("connected");
       // Once connected, you can subscribe or publish
       client.subscribe("esp32/test");
-    } else {
+    }
+    else
+    {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
     }
-
   }
 }
 
-void setup_wifi() {
-    delay(10);
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
+void setup_wifi()
+{
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
 
-    WiFi.begin(ssid, password); // Iniciar conexión Wi-Fi
+  WiFi.begin(ssid, password); // Iniciar conexión Wi-Fi
 
-    int attempts = 0;  // Contador de intentos
-    while (WiFi.status() != WL_CONNECTED && attempts < 30) { // Hasta 30 intentos (30 segundos)
-        delay(1000);
-        Serial.print("Attempt ");
-        Serial.println(attempts);
-        Serial.println(WiFi.status());  // Imprime el estado de la conexión
-        attempts++;
-    }
+  int attempts = 0; // Contador de intentos
+  while (WiFi.status() != WL_CONNECTED && attempts < 30)
+  { // Hasta 30 intentos (30 segundos)
+    delay(1000);
+    Serial.print("Attempt ");
+    Serial.println(attempts);
+    Serial.println(WiFi.status()); // Imprime el estado de la conexión
+    attempts++;
+  }
 
-    if(WiFi.status() == WL_CONNECTED) {
-        Serial.println("");
-        Serial.println("WiFi connected");
-        Serial.print("IP Address: ");
-        Serial.println(WiFi.localIP());  // Imprime la IP asignada
-    } else {
-        Serial.println("Failed to connect to WiFi");
-    }
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP()); // Imprime la IP asignada
+  }
+  else
+  {
+    Serial.println("Failed to connect to WiFi");
+  }
 }
 
-void setup_rfid(){
+void setup_rfid()
+{
   Serial.begin(115200);
   delay(1000); // Esperar para asegurar que el Monitor Serial esté listo
   Serial.println(F("Iniciando el lector MFRC522..."));
 
   // Inicializar el bus SPI con pines específicos
-  SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, SS_PIN); 
+  SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, SS_PIN);
   Serial.println(F("SPI iniciado."));
 
   // Inicializar el lector MFRC522
-  rfid.PCD_Init(); 
+  rfid.PCD_Init();
   Serial.println(F("MFRC522 inicializado."));
 
   // Inicializar la llave por defecto (todos 0xFF)
-  for (byte i = 0; i < 6; i++) {
+  for (byte i = 0; i < 6; i++)
+  {
     key.keyByte[i] = 0xFF;
   }
 
@@ -134,39 +153,51 @@ void setup_rfid(){
   Serial.println();
 }
 
-void setup_ssl() {
-    // Initialize SPIFFS
-    if (!SPIFFS.begin()) {
-        Serial.println("Failed to mount file system");
-        return;
-    }
+void setup_ssl()
+{
+  // Initialize SPIFFS
+  if (!SPIFFS.begin())
+  {
+    Serial.println("Failed to mount file system");
+    return;
+  }
 
-    // Load CA, Device Certificate, and Private Key from SPIFFS
-    String caCert = readFile("/certificates/ca.crt");
-    String deviceCert = readFile("/certificates/device.crt");
-    String deviceKey = readFile("/certificates/device.key");
-    
-    // Assign the certificates to the client
-    espClient.setCACert(caCert.c_str());
-    espClient.setCertificate(deviceCert.c_str());
-    espClient.setPrivateKey(deviceKey.c_str());
+  // Load CA, Device Certificate, and Private Key from SPIFFS
+  String caCert = readFile("/certificates/ca.crt");
+  String deviceCert = readFile("/certificates/device.crt");
+  String deviceKey = readFile("/certificates/device.key");
 
+  // Assign the certificates to the client
+  // espClient.setCACert(caCert.c_str());
+  // espClient.setCertificate(deviceCert.c_str());
+  // espClient.setPrivateKey(deviceKey.c_str());
 }
 
-void setup() {
-    Serial.begin(115200);  // Iniciar comunicación serie
-    setup_wifi();          // Conectar a Wi-Fi
-    setup_rfid();
-    // setup_ssl();           // Setup SSL Certificates
-    
-    //client.setServer(mqtt_server, mqtt_port);  // Set the MQTT broker and port
+void setup()
+{
+  Serial.begin(115200); // Iniciar comunicación serie
+  setup_wifi();         // Conectar a Wi-Fi
+  setup_rfid();
+  // setup_ssl();           // Setup SSL Certificates
+
+  client.setServer(mqtt_server, mqtt_port); // Set the MQTT broker and port
 }
 
-void loop() {
-     //Serial.println(F("Esperando una nueva tarjeta..."));
+void loop()
+{
+
+  if (!client.connected())
+  {
+    reconnect(); // Try to reconnect if disconnected
+    Serial.println("Reconnecting");
+  }
+  client.loop(); // Ensure the client maintains its connection
+                 
+  // Serial.println(F("Esperando una nueva tarjeta..."));
 
   // Reiniciar el loop si no hay una nueva tarjeta presente
-  if (!rfid.PICC_IsNewCardPresent()) {
+  if (!rfid.PICC_IsNewCardPresent())
+  {
     delay(500); // Esperar medio segundo antes de volver a intentar
     return;
   }
@@ -174,7 +205,8 @@ void loop() {
   Serial.println(F("Tarjeta detectada. Leyendo..."));
 
   // Verificar si el NUID ha sido leído
-  if (!rfid.PICC_ReadCardSerial()) {
+  if (!rfid.PICC_ReadCardSerial())
+  {
     Serial.println(F("Error al leer la tarjeta."));
     return;
   }
@@ -184,30 +216,35 @@ void loop() {
   Serial.println(rfid.PICC_GetTypeName(piccType));
 
   // Verificar si el PICC es de tipo MIFARE Classic
-  if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&  
+  if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&
       piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
-      piccType != MFRC522::PICC_TYPE_MIFARE_4K) {
+      piccType != MFRC522::PICC_TYPE_MIFARE_4K)
+  {
     Serial.println(F("Tu tarjeta no es de tipo MIFARE Classic."));
     return;
   }
 
   // Verificar si es una nueva tarjeta comparando el UID
   bool nuevaTarjeta = false;
-  for (byte i = 0; i < 4; i++) {
-    if (rfid.uid.uidByte[i] != nuidPICC[i]) {
+  for (byte i = 0; i < 4; i++)
+  {
+    if (rfid.uid.uidByte[i] != nuidPICC[i])
+    {
       nuevaTarjeta = true;
       break;
     }
   }
 
-  if (nuevaTarjeta) {
+  if (nuevaTarjeta)
+  {
     Serial.println(F("Se ha detectado una nueva tarjeta."));
 
     // Almacenar el NUID en el array
-    for (byte i = 0; i < 4; i++) {
+    for (byte i = 0; i < 4; i++)
+    {
       nuidPICC[i] = rfid.uid.uidByte[i];
     }
-   
+
     Serial.println(F("El NUID de la tarjeta es:"));
     Serial.print(F("En hexadecimal: "));
     printHex(rfid.uid.uidByte, rfid.uid.size);
@@ -216,7 +253,8 @@ void loop() {
     printDec(rfid.uid.uidByte, rfid.uid.size);
     Serial.println();
   }
-  else {
+  else
+  {
     Serial.println(F("Tarjeta ya leída anteriormente."));
   }
 
@@ -227,15 +265,7 @@ void loop() {
   rfid.PCD_StopCrypto1();
 
   delay(1000); // Esperar un segundo antes de la siguiente lectura
-
-  //  if (!client.connected()) {
-  //     reconnect();  // Try to reconnect if disconnected
-  //   }
-  //   client.loop();  // Ensure the client maintains its connection
-
 }
-
-
 
 // const char* device_key =
 // "-----BEGIN PRIVATE KEY-----\n"
@@ -267,7 +297,7 @@ void loop() {
 // "6R55mOZEF9WthcMMIQr/gj4=\n"
 // "-----END PRIVATE KEY-----\n";
 
-// const char* device_crt = 
+// const char* device_crt =
 // "-----BEGIN CERTIFICATE-----\n"
 // "MIIENTCCAh0CFDdhMVl0XlHJot8yKR3G+iWeWdX3MA0GCSqGSIb3DQEBCwUAMFkx\n"
 // "CzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRl\n"
@@ -294,7 +324,7 @@ void loop() {
 // "hw0LJLkBm3InB6A32AwluvkMv7VNEJW1RA==\n"
 // "-----END CERTIFICATE-----\n";
 
-// const char* ca_crt = 
+// const char* ca_crt =
 // "-----BEGIN CERTIFICATE-----\n"
 // "MIIFkzCCA3ugAwIBAgIUFCJbSK7PfavnPaUB/VzUDKbf2FEwDQYJKoZIhvcNAQEL\n"
 // "BQAwWTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM\n"
