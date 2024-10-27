@@ -33,7 +33,9 @@ void handleMQTTMessage(char *topic, byte *message, unsigned int length)
     {
         if (msg == "open")
         {
-            //ESP32 opens door and once done it , publish door opened
+            //LOGIC ESP32 open door
+            //once done, publish opened door
+            publishDoorStatus(client, "opened");
         }
         else if (msg == "close")
         {
@@ -42,4 +44,9 @@ void handleMQTTMessage(char *topic, byte *message, unsigned int length)
     }
 }
 
+
+void publishDoorStatus(PubSubClient &client, const char *status)
+{
+    client.publish("doorStatus", status);
+}
 
