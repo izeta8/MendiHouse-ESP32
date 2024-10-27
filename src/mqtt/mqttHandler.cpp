@@ -39,7 +39,9 @@ void handleMQTTMessage(char *topic, byte *message, unsigned int length)
         }
         else if (msg == "close")
         {
-            //ESP32 closes door and once done i , publish door closed
+            //LOGIC ESP32 open door
+            //once done, publish opened door
+             publishDoorStatus(client, "closed");
         }
     }
 }
