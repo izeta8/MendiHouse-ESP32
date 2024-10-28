@@ -17,6 +17,8 @@
 
 #define SERVO_PIN 13
 
+#define BUZZER_PIN 12 
+
 Servo myServo;
 
 const char *ssid = "AEG-IKASLE";          // Wi-Fi SSID
@@ -29,6 +31,19 @@ const char *mqtt_server = "10.80.128.11"; // local mosquitto runs in ip machine 
 
 WiFiClient espClient;     // Secure Wi-Fi Client
 PubSubClient client(espClient); // MQTT client
+
+#define BUZZER_CHANNEL 0
+#define BUZZER_RESOLUTION 8
+
+void beep(int times, int duration, int pause, int frequency) {
+   ledcWriteTone(BUZZER_CHANNEL, frequency);
+  for(int i = 0; i < times; i++) {
+    ledcWrite(BUZZER_CHANNEL, 128); // Encender el buzzer
+    delay(duration);                   // Mantener encendido por 'duration' ms
+    ledcWrite(BUZZER_CHANNEL, 0);    // Apagar el buzzer
+    delay(pause);                      // Esperar 'pause' ms antes del siguiente pitido
+  }
+}
 
 // Function to read file from SPIFFS
 String readFile(const char *path)
@@ -189,6 +204,11 @@ void setup()
   setup_rfid();
   myServo.attach(SERVO_PIN);
 
+  pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
+  digitalWrite(BUZZER_PIN, LOW);    // Asegurar que el buzzer esté apagado al inicio
+  pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
+  ledcSetup(BUZZER_CHANNEL, 1000, BUZZER_RESOLUTION); // Canal 0, 1kHz, 8 bits
+  ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL); // Asignar el canal al pin
   // setup_ssl();           // Setup SSL Certificates
 
   client.setServer(mqtt_server, mqtt_port); // Set the MQTT broker and port
@@ -221,7 +241,12 @@ void loop()
     delay(20);
   }
 
-                 
+////BUFFER////
+beep(1, 10, 50, 600); // Un pitido de 700 ms con frecuencia 500 Hz
+delay(1000);             // Esperar 1 segundo
+beep(2, 200, 300, 400); // Dos pitidos de 700 ms con frecuencia 400 Hz
+delay(2000);             // Esperar 2 segundos // Esperar 2 segundos
+
   // Serial.println(F("Esperando una nueva tarjeta..."));
 
   // Reiniciar el loop si no hay una nueva tarjeta presente
