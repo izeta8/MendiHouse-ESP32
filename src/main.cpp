@@ -5,6 +5,8 @@
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
 #include <SPIFFS.h> //system to read files and use portion of flash memory of ESP32 for it
+#include <ESP32Servo.h>
+
 
 // Definir los pines SPI
 #define SS_PIN 21   // GPIO 21
@@ -13,10 +15,17 @@
 #define MISO_PIN 19 // GPIO 19
 #define SCK_PIN 18  // GPIO 18
 
+#define SERVO_PIN 13
+
+Servo myServo;
+
 const char *ssid = "AEG-IKASLE";          // Wi-Fi SSID
 const char *password = "Ea25dneAEG";      // Wi-Fi Password
 const int mqtt_port = 1883;               // Port for MQTT over TLS/SSL
 const char *mqtt_server = "10.80.128.11"; // local mosquitto runs in ip machine network
+
+
+
 
 WiFiClient espClient;     // Secure Wi-Fi Client
 PubSubClient client(espClient); // MQTT client
@@ -82,7 +91,7 @@ void reconnect()
     {
       Serial.println("connected");
       // Once connected, you can subscribe or publish
-      client.subscribe("esp32/test");
+      client.publish("idCard", "87687943");
     }
     else
     {
@@ -178,6 +187,8 @@ void setup()
   Serial.begin(115200); // Iniciar comunicación serie
   setup_wifi();         // Conectar a Wi-Fi
   setup_rfid();
+  myServo.attach(SERVO_PIN);
+
   // setup_ssl();           // Setup SSL Certificates
 
   client.setServer(mqtt_server, mqtt_port); // Set the MQTT broker and port
@@ -192,6 +203,24 @@ void loop()
     Serial.println("Reconnecting");
   }
   client.loop(); // Ensure the client maintains its connection
+
+  ///MOTOR///
+
+  // giro de 0 a 90º
+  for (int i = 0; i <= 90; i++){
+    myServo.write(i);
+    Serial.print("Angulo:  ");
+    Serial.println(i);
+    delay(20);
+  }
+ // giro de 90 a 0º
+  for (int i = 89; i > 0; i--){
+    myServo.write(i);
+    Serial.print("Angulo:  ");
+    Serial.println(i);
+    delay(20);
+  }
+
                  
   // Serial.println(F("Esperando una nueva tarjeta..."));
 
