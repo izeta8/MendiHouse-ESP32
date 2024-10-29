@@ -225,20 +225,29 @@ void loop()
   }
   client.loop(); // Ensure the client maintains its connection
 
-  ///MOTOR///
+//Close door
+ myServo.write(0);
 
-  // giro de 0 a 90º
+ //giro de 0 a 90º. OPEN DOOR
   for (int i = 0; i <= 90; i++){
     myServo.write(i);
     // Serial.print("Angulo:  ");
     // Serial.println(i);
+    if(i == 90){
+      Serial.println("Puerta abierta");
+     client.publish("doorStatus","opened");
+    }
     delay(20);
   }
- // giro de 90 a 0º
-  for (int i = 89; i > 0; i--){
+ // giro de 90 a 0º. CLOSE DOOR
+  for (int i = 90; i >= 0; i--){
     myServo.write(i);
     // Serial.print("Angulo:  ");
     // Serial.println(i);
+    if(i == 0){
+      Serial.println("Puerta cerrada");
+     client.publish("doorStatus","closed");
+    } 
     delay(20);
   }
 
