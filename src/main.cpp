@@ -106,7 +106,8 @@ void reconnect()
     {
       Serial.println("connected");
       // Once connected, you can subscribe or publish
-      client.publish("idCard", "87687943");
+        client.publish("idCard", "65876564");
+      client.publish("doorStatus", "closed");
     }
     else
     {
@@ -229,15 +230,15 @@ void loop()
   // giro de 0 a 90º
   for (int i = 0; i <= 90; i++){
     myServo.write(i);
-    Serial.print("Angulo:  ");
-    Serial.println(i);
+    // Serial.print("Angulo:  ");
+    // Serial.println(i);
     delay(20);
   }
  // giro de 90 a 0º
   for (int i = 89; i > 0; i--){
     myServo.write(i);
-    Serial.print("Angulo:  ");
-    Serial.println(i);
+    // Serial.print("Angulo:  ");
+    // Serial.println(i);
     delay(20);
   }
 
