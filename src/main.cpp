@@ -3,10 +3,9 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <PubSubClient.h>
-#include <WiFiClientSecure.h>
-#include <SPIFFS.h> //system to read files and use portion of flash memory of ESP32 for it
+#include <ArduinoJson.h>
 #include <ESP32Servo.h>
-
+#include <SPIFFS.h> // Sistema para leer archivos y usar parte de la memoria flash del ESP32
 
 // Definir los pines SPI
 #define SS_PIN 21   // GPIO 21
@@ -16,31 +15,88 @@
 #define SCK_PIN 18  // GPIO 18
 
 #define SERVO_PIN 13
-
 #define BUZZER_PIN 12 
 
 Servo myServo;
 
 const char *ssid = "AEG-IKASLE";          // Wi-Fi SSID
 const char *password = "Ea25dneAEG";      // Wi-Fi Password
-const int mqtt_port = 1883;               // Port for MQTT over TLS/SSL
-const char *mqtt_server = "10.80.128.11"; // local mosquitto runs in ip machine network
+const int mqtt_port = 1883;               // Puerto para MQTT
+const char *mqtt_server = "10.80.128.11"; // Dirección IP del broker MQTT local
 
-
-
-
-WiFiClient espClient;     // Secure Wi-Fi Client
-PubSubClient client(espClient); // MQTT client
+WiFiClient espClient;                       // Cliente Wi-Fi
+PubSubClient client(espClient);             // Cliente MQTT
 
 #define BUZZER_CHANNEL 0
 #define BUZZER_RESOLUTION 8
 
+bool actionOpen = false;
+bool gmailCondition = false;
+
+byte nuidPICC[4] = {0, 0, 0, 0}; 
+
+void reconnect()
+{
+  while (!client.connected())
+  {
+    Serial.print("Attempting MQTT connection...");
+    // Intentar conectar
+    if (client.connect("ESP32_MendiHouse"))
+    {
+      Serial.println("connected");
+      client.subscribe("doorAction");
+    }
+    else
+    {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
+
+//Auxiliary routine to display an array of bytes in hexadecimal format.
+void printHex(byte *buffer, byte bufferSize)
+{
+  for (byte i = 0; i < bufferSize; i++)
+  {
+    if (buffer[i] < 0x10)
+    {
+      Serial.print(" 0");
+    }
+    else
+    {
+      Serial.print(" ");
+    }
+    Serial.print(buffer[i], HEX);
+  }
+}
+
+
+//Auxiliary routine to display an array of bytes in decimal format.
+void printDec(byte *buffer, byte bufferSize)
+{
+  for (byte i = 0; i < bufferSize; i++)
+  {
+    Serial.print(' ');
+    Serial.print(buffer[i], DEC);
+  }
+}
+
+MFRC522 rfid(SS_PIN, RST_PIN); 
+MFRC522::MIFARE_Key key;
+
+
+//Function to beep with the buzzer.
 void beep(int times, int duration, int pause, int frequency) {
    ledcWriteTone(BUZZER_CHANNEL, frequency);
   for(int i = 0; i < times; i++) {
-    ledcWrite(BUZZER_CHANNEL, 128); // Encender el buzzer
+    ledcWrite(BUZZER_CHANNEL, 128);    // Encender el buzzer
     delay(duration);                   // Mantener encendido por 'duration' ms
-    ledcWrite(BUZZER_CHANNEL, 0);    // Apagar el buzzer
+    ledcWrite(BUZZER_CHANNEL, 0);      // Apagar el buzzer
     delay(pause);                      // Esperar 'pause' ms antes del siguiente pitido
   }
 }
@@ -59,67 +115,92 @@ String readFile(const char *path)
   return content;
 }
 
-MFRC522 rfid(SS_PIN, RST_PIN); // Instancia de la clase
-MFRC522::MIFARE_Key key;
+//Function to control the opening of the door.
+void openDoor() {
+  Serial.println("Door opening...");
+  // Giro de 0 a 90º. ABRIR PUERTA
+  for (int i = 0; i <= 90; i++) {
+    myServo.write(i);
+    delay(20);
+  }
+  Serial.println("Door opened");
+  client.publish("doorStatus", "opened");
+}
 
-// Array para almacenar el NUID
-byte nuidPICC[4];
 
-/**
- * Rutina auxiliar para mostrar un array de bytes en formato hexadecimal.
- */
-void printHex(byte *buffer, byte bufferSize)
-{
-  for (byte i = 0; i < bufferSize; i++)
-  {
-    if (buffer[i] < 0x10)
-    {
-      Serial.print(" 0");
+//Function for operating the door lock.
+void closeDoor() {
+  Serial.println("Door closing...");
+  // Giro de 90 a 0º. CERRAR PUERTA
+  for (int i = 90; i >= 0; i--) {
+    myServo.write(i);
+    delay(20);
+  }
+  Serial.println("Door closed");
+  client.publish("doorStatus", "closed");
+}
+
+
+//Function to check and open the door if the conditions are met.
+void checkAndOpenDoor() {
+  if (actionOpen && gmailCondition) {
+    openDoor();
+    beep(1, 100, 100, 800);
+    actionOpen = false;
+    gmailCondition = false;
+  } 
+}
+
+
+//Function to handle received MQTT messages.
+void callback(char* topic, byte* payload, unsigned int length) {
+  char messageBuffer[length + 1];
+  memcpy(messageBuffer, payload, length);
+  messageBuffer[length] = '\0'; 
+
+  Serial.print("Message received [");
+  Serial.print(topic);
+  Serial.print("]: ");
+  Serial.println(messageBuffer);
+
+  if (String(topic) == "doorAction") {
+    StaticJsonDocument<200> doc;
+
+    DeserializationError error = deserializeJson(doc, messageBuffer);
+    if (error) {
+      Serial.print(F("Error parsing JSON: "));
+      Serial.println(error.f_str());
+      return;
     }
-    else
-    {
-      Serial.print(" ");
+
+    const char* action = doc["action"];
+    const char* email = doc["email"];
+
+    if (action != nullptr && email != nullptr) {
+      if (strcmp(action, "open") == 0) {
+        Serial.println("Open command received.");
+        openDoor();
+        beep(1, 100, 100, 800); 
+      } else if (strcmp(action, "close") == 0) {
+        Serial.println("Close command received.");
+        closeDoor();
+        beep(1, 100, 100, 600); 
+      } else {
+        Serial.println("Unknown action received.");
+      }
+
+      Serial.print("Email associated with the command: ");
+      Serial.println(email);
+    } else {
+      Serial.println("Fields 'action' or 'email' are missing in the JSON.");
     }
-    Serial.print(buffer[i], HEX);
   }
 }
 
-/**
- * Rutina auxiliar para mostrar un array de bytes en formato decimal.
- */
-void printDec(byte *buffer, byte bufferSize)
-{
-  for (byte i = 0; i < bufferSize; i++)
-  {
-    Serial.print(' ');
-    Serial.print(buffer[i], DEC);
-  }
-}
-void reconnect()
-{
-  // Loop until we're reconnected
-  while (!client.connected())
-  {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect("ESP32_MendiHouse"))
-    {
-      Serial.println("connected");
-      // Once connected, you can subscribe or publish
-        client.publish("idCard", "65876564");
-      client.publish("doorStatus", "closed");
-    }
-    else
-    {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
 
+
+
+//Function to connect to Wi-Fi.
 void setup_wifi()
 {
   delay(10);
@@ -127,15 +208,15 @@ void setup_wifi()
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
-  WiFi.begin(ssid, password); // Iniciar conexión Wi-Fi
+  WiFi.begin(ssid, password); 
 
   int attempts = 0; // Contador de intentos
   while (WiFi.status() != WL_CONNECTED && attempts < 30)
-  { // Hasta 30 intentos (30 segundos)
+  { 
     delay(1000);
     Serial.print("Attempt ");
     Serial.println(attempts);
-    Serial.println(WiFi.status()); // Imprime el estado de la conexión
+    Serial.println(WiFi.status()); 
     attempts++;
   }
 
@@ -144,7 +225,7 @@ void setup_wifi()
     Serial.println("");
     Serial.println("WiFi connected");
     Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP()); // Imprime la IP asignada
+    Serial.println(WiFi.localIP()); 
   }
   else
   {
@@ -152,10 +233,12 @@ void setup_wifi()
   }
 }
 
+
+//Function for initialising the RFID.
 void setup_rfid()
 {
   Serial.begin(115200);
-  delay(1000); // Esperar para asegurar que el Monitor Serial esté listo
+  delay(1000); 
   Serial.println(F("Iniciando el lector MFRC522..."));
 
   // Inicializar el bus SPI con pines específicos
@@ -178,87 +261,31 @@ void setup_rfid()
   Serial.println();
 }
 
-void setup_ssl()
-{
-  // Initialize SPIFFS
-  if (!SPIFFS.begin())
-  {
-    Serial.println("Failed to mount file system");
-    return;
-  }
-
-  // Load CA, Device Certificate, and Private Key from SPIFFS
-  String caCert = readFile("/certificates/ca.crt");
-  String deviceCert = readFile("/certificates/device.crt");
-  String deviceKey = readFile("/certificates/device.key");
-
-  // Assign the certificates to the client
-  // espClient.setCACert(caCert.c_str());
-  // espClient.setCertificate(deviceCert.c_str());
-  // espClient.setPrivateKey(deviceKey.c_str());
-}
 
 void setup()
 {
-  Serial.begin(115200); // Iniciar comunicación serie
+  Serial.begin(115200); 
   setup_wifi();         // Conectar a Wi-Fi
   setup_rfid();
   myServo.attach(SERVO_PIN);
 
   pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
   digitalWrite(BUZZER_PIN, LOW);    // Asegurar que el buzzer esté apagado al inicio
-  pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
+  // pinMode(BUZZER_PIN, OUTPUT);   // Esta línea es redundante y puede eliminarse
   ledcSetup(BUZZER_CHANNEL, 1000, BUZZER_RESOLUTION); // Canal 0, 1kHz, 8 bits
   ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL); // Asignar el canal al pin
-  // setup_ssl();           // Setup SSL Certificates
 
-  client.setServer(mqtt_server, mqtt_port); // Set the MQTT broker and port
+  // setup_ssl(); // Setup SSL Certificates (descomentarlo si usas SSL)
+
+  client.setServer(mqtt_server, mqtt_port); // Establecer el broker MQTT y el puerto
+  client.setCallback(callback); // Asignar la función de callback
+
+  // Inicializar buzzer con un pitido de prueba
+  beep(1, 100, 100, 600); // Un pitido corto
 }
 
-void loop()
-{
 
-  if (!client.connected())
-  {
-    reconnect(); // Try to reconnect if disconnected
-    Serial.println("Reconnecting");
-  }
-  client.loop(); // Ensure the client maintains its connection
-
-//Close door
- myServo.write(0);
-
- //giro de 0 a 90º. OPEN DOOR
-  for (int i = 0; i <= 90; i++){
-    myServo.write(i);
-    // Serial.print("Angulo:  ");
-    // Serial.println(i);
-    if(i == 90){
-      Serial.println("Puerta abierta");
-     client.publish("doorStatus","opened");
-    }
-    delay(20);
-  }
- // giro de 90 a 0º. CLOSE DOOR
-  for (int i = 90; i >= 0; i--){
-    myServo.write(i);
-    // Serial.print("Angulo:  ");
-    // Serial.println(i);
-    if(i == 0){
-      Serial.println("Puerta cerrada");
-     client.publish("doorStatus","closed");
-    } 
-    delay(20);
-  }
-
-////BUFFER////
-beep(1, 10, 50, 600); // Un pitido de 700 ms con frecuencia 500 Hz
-delay(1000);             // Esperar 1 segundo
-beep(2, 200, 300, 400); // Dos pitidos de 700 ms con frecuencia 400 Hz
-delay(2000);             // Esperar 2 segundos // Esperar 2 segundos
-
-  // Serial.println(F("Esperando una nueva tarjeta..."));
-
+void handleRFID(){
   // Reiniciar el loop si no hay una nueva tarjeta presente
   if (!rfid.PICC_IsNewCardPresent())
   {
@@ -321,7 +348,6 @@ delay(2000);             // Esperar 2 segundos // Esperar 2 segundos
   {
     Serial.println(F("Tarjeta ya leída anteriormente."));
   }
-
   // Detener la comunicación con la tarjeta
   rfid.PICC_HaltA();
 
@@ -330,6 +356,20 @@ delay(2000);             // Esperar 2 segundos // Esperar 2 segundos
 
   delay(1000); // Esperar un segundo antes de la siguiente lectura
 }
+
+void loop()
+{
+  if (!client.connected())
+  {
+    reconnect(); // Try to reconnect if disconnected
+    Serial.println("Reconnecting");
+  }
+  client.loop(); // Ensure the client maintains its connection
+
+  handleRFID();
+}
+
+
 
 // const char* device_key =
 // "-----BEGIN PRIVATE KEY-----\n"
