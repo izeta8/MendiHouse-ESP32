@@ -31,7 +31,7 @@ PubSubClient client(espClient);             // Cliente MQTT
 #define BUZZER_RESOLUTION 8
 
 bool actionOpen = false;
-bool gmailCondition = false;
+bool tokenCondition = false;
 
 bool isPending = false;
 int  doorAngle = 0;
@@ -128,7 +128,6 @@ void closeDoor() {
     delay(20);
   }
   Serial.println("Door closed");
-  client.publish("doorStatus", "closed");
   isPending = false;
 }
 
@@ -144,16 +143,15 @@ void openDoor() {
     delay(20);
   }
   Serial.println("Door opened");
-  client.publish("doorStatus", "opened");
 }
 
 //Function to check and open the door if the conditions are met.
 void checkAndOpenDoor() {
-  if (actionOpen && gmailCondition) {
+  if (actionOpen && tokenCondition) {
     openDoor();
     beep(1, 100, 100, 800);
     actionOpen = false;
-    gmailCondition = false;
+    tokenCondition = false;
   } 
 }
 
@@ -180,26 +178,46 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
 
     const char* action = doc["action"];
-    const char* email = doc["email"];
+    const char* token = doc["token"];
 
-    if (action != nullptr && email != nullptr) {
+   if (action != nullptr && token != nullptr) {
+      String status;
       if (strcmp(action, "open") == 0) {
         Serial.println("Open command received.");
         openDoor();
         beep(1, 100, 100, 800); 
+        status = "opened";
       } else if (strcmp(action, "close") == 0) {
         Serial.println("Close command received.");
         closeDoor();
         beep(1, 100, 100, 600); 
+        status = "closed";
       } else {
         Serial.println("Action error.");
         isPending = false;
+        return; // Exit if the action is unknown
       }
 
-      Serial.print("Email associated with the command: ");
-      Serial.println(email);
+      Serial.print("Token associated with the command: ");
+      Serial.println(token);
+
+      // Construct JSON for doorStatus
+      StaticJsonDocument<200> docStatus;
+      docStatus["doorStatus"] = status;
+      docStatus["token"] = token;
+
+      String output;
+      serializeJson(docStatus, output);
+
+      // Publish the JSON to doorStatus
+      bool publishSuccess = client.publish("doorStatus", output.c_str());
+      if (publishSuccess) {
+        Serial.println(F("Door status successfully published to MQTT topic 'doorStatus'."));
+      } else {
+        Serial.println(F("Failed to publish door status to MQTT topic 'doorStatus'."));
+      }
     } else {
-      Serial.println("Fields 'action' or 'email' are missing in the JSON.");
+      Serial.println("Fields 'action' or 'token' are missing in the JSON.");
     }
   }
 }
