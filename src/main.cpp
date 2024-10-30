@@ -33,6 +33,9 @@ PubSubClient client(espClient);             // Cliente MQTT
 bool actionOpen = false;
 bool gmailCondition = false;
 
+bool isPending = false;
+int  doorAngle = 0;
+
 byte nuidPICC[4] = {0, 0, 0, 0}; 
 
 void reconnect()
@@ -115,31 +118,34 @@ String readFile(const char *path)
   return content;
 }
 
-//Function to control the opening of the door.
-void openDoor() {
-  Serial.println("Door opening...");
-  // Giro de 0 a 90º. ABRIR PUERTA
-  for (int i = 0; i <= 90; i++) {
-    myServo.write(i);
-    delay(20);
-  }
-  Serial.println("Door opened");
-  client.publish("doorStatus", "opened");
-}
-
-
 //Function for operating the door lock.
 void closeDoor() {
   Serial.println("Door closing...");
   // Giro de 90 a 0º. CERRAR PUERTA
   for (int i = 90; i >= 0; i--) {
     myServo.write(i);
+     doorAngle = i;
     delay(20);
   }
   Serial.println("Door closed");
   client.publish("doorStatus", "closed");
+  isPending = false;
 }
 
+//Function to control the opening of the door.
+void openDoor() {
+  Serial.println("Door opening...");
+  // Giro de 0 a 90º. ABRIR PUERTA
+  for (int i = 0; i <= 90; i++) {
+    myServo.write(i);
+
+    doorAngle = i;
+
+    delay(20);
+  }
+  Serial.println("Door opened");
+  client.publish("doorStatus", "opened");
+}
 
 //Function to check and open the door if the conditions are met.
 void checkAndOpenDoor() {
@@ -186,7 +192,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
         closeDoor();
         beep(1, 100, 100, 600); 
       } else {
-        Serial.println("Unknown action received.");
+        Serial.println("Action error.");
+        isPending = false;
       }
 
       Serial.print("Email associated with the command: ");
@@ -292,13 +299,22 @@ void handleRFID(){
     delay(500); // Esperar medio segundo antes de volver a intentar
     return;
   }
+  Serial.println(F("Tarjeta detectada."));
+  Serial.print(F("Pending: "));
+  Serial.println(isPending ? "true" : "false");
 
-  Serial.println(F("Tarjeta detectada. Leyendo..."));
-
+  
+  Serial.print(F("Angle: "));
+  Serial.println(doorAngle);
+if(!isPending && doorAngle == 0)
+{
+isPending = true;
+Serial.println(F("Leyendo..."));
   // Verificar si el NUID ha sido leído
   if (!rfid.PICC_ReadCardSerial())
   {
     Serial.println(F("Error al leer la tarjeta."));
+    isPending = false;
     return;
   }
 
@@ -355,6 +371,10 @@ void handleRFID(){
   rfid.PCD_StopCrypto1();
 
   delay(1000); // Esperar un segundo antes de la siguiente lectura
+
+  
+  //Public idCard  
+}
 }
 
 void loop()
