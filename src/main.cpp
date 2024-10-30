@@ -180,7 +180,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     const char* action = doc["action"];
     const char* token = doc["token"];
 
-   if (action != nullptr && token != nullptr) {
+   if (action != nullptr) {
       String status;
       if (strcmp(action, "open") == 0) {
         Serial.println("Open command received.");
