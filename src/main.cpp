@@ -361,21 +361,6 @@ Serial.println(F("Leyendo..."));
     return;
   }
 
-  // Verificar si es una nueva tarjeta comparando el UID
-  bool nuevaTarjeta = false;
-  for (byte i = 0; i < 4; i++)
-  {
-    if (rfid.uid.uidByte[i] != nuidPICC[i])
-    {
-      nuevaTarjeta = true;
-      break;
-    }
-  }
-
-  if (nuevaTarjeta)
-  {
-    Serial.println(F("Se ha detectado una nueva tarjeta."));
-
     // Almacenar el NUID en el array
     for (byte i = 0; i < 4; i++)
     {
@@ -397,11 +382,7 @@ Serial.println(F("Leyendo..."));
     // **Publish the NUID Hex String**
     client.publish("cardId", nuidHex.c_str());
     Serial.println(F("NUID published to MQTT topic 'cardId'."));
-  }
-  else
-  {
-    Serial.println(F("Card has already been read previously."));
-  }
+ 
   // Detener la comunicación con la tarjeta
   rfid.PICC_HaltA();
 
