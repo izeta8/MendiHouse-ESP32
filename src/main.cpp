@@ -291,6 +291,18 @@ void setup()
   beep(1, 100, 100, 600); // Un pitido corto
 }
 
+//Function to Convert Byte Array to Hexadecimal String
+String byteArrayToHexString(byte *buffer, byte bufferSize) {
+  String hexString = "";
+  for (byte i = 0; i < bufferSize; i++) {
+    if (buffer[i] < 0x10) {
+      hexString += "0"; // Add leading zero for single digit hex
+    }
+    hexString += String(buffer[i], HEX);
+  }
+  hexString.toUpperCase(); 
+  return hexString;  
+}
 
 void handleRFID(){
   // Reiniciar el loop si no hay una nueva tarjeta presente
@@ -359,10 +371,18 @@ Serial.println(F("Leyendo..."));
     Serial.print(F("En decimal: "));
     printDec(rfid.uid.uidByte, rfid.uid.size);
     Serial.println();
+
+    String nuidHex = byteArrayToHexString(nuidPICC, 4); // Assuming 4-byte NUID
+    Serial.print(F("NUID Hex String: "));
+    Serial.println(nuidHex);
+      
+    // **Publish the NUID Hex String**
+    client.publish("cardId", nuidHex.c_str());
+    Serial.println(F("NUID published to MQTT topic 'cardId'."));
   }
   else
   {
-    Serial.println(F("Tarjeta ya leída anteriormente."));
+    Serial.println(F("Card has already been read previously."));
   }
   // Detener la comunicación con la tarjeta
   rfid.PICC_HaltA();
@@ -372,8 +392,6 @@ Serial.println(F("Leyendo..."));
 
   delay(1000); // Esperar un segundo antes de la siguiente lectura
 
-  
-  //Public idCard  
 }
 }
 
