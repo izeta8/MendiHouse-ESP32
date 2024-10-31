@@ -15,7 +15,6 @@
 #define SCK_PIN 18  // GPIO 18
 
 #define SERVO_PIN 13
-#define BUZZER_PIN 12 
 
 Servo myServo;
 
@@ -27,7 +26,8 @@ const char *mqtt_server = "10.80.128.11"; // MQTT Broker IP
 WiFiClient espClient;            // Wi-Fi Client
 PubSubClient client(espClient);  // MQTT Client 
 
-#define BUZZER_CHANNEL 0
+#define BUZZER_PIN 12 
+#define BUZZER_CHANNEL 1
 #define BUZZER_RESOLUTION 8
 
 bool actionOpen = false;
@@ -138,17 +138,17 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       String status;
       if (strcmp(action, "open") == 0) {
         Serial.println("Open command received.");
-        openDoor();
         beep(1, 100, 100, 800); 
+        openDoor();
         status = "opened";
       } else if (strcmp(action, "close") == 0) {
         Serial.println("Close command received.");
         closeDoor();
-        beep(1, 100, 100, 600); 
         status = "closed";
       } else {
         Serial.println("Action error.");
         isPending = false;
+        beep(2, 100, 100, 800); 
         return; // Exit if the action is unknown
       }
 
@@ -252,6 +252,7 @@ void handleRFID(){
     delay(500); // Esperar medio segundo antes de volver a intentar
     return;
   }
+  beep(1, 100, 100, 800);
   Serial.println(F("Tarjeta detectada."));
   Serial.print(F("Pending: "));
   Serial.println(isPending ? "true" : "false");
@@ -368,12 +369,12 @@ void checkAndOpenDoor() {
 
 //Function to beep with the buzzer.
 void beep(int times, int duration, int pause, int frequency) {
-   ledcWriteTone(BUZZER_CHANNEL, frequency);
+  ledcWriteTone(BUZZER_CHANNEL, frequency);
   for(int i = 0; i < times; i++) {
-    ledcWrite(BUZZER_CHANNEL, 128);    // Encender el buzzer
-    delay(duration);                   // Mantener encendido por 'duration' ms
-    ledcWrite(BUZZER_CHANNEL, 0);      // Apagar el buzzer
-    delay(pause);                      // Esperar 'pause' ms antes del siguiente pitido
+     digitalWrite(BUZZER_PIN, HIGH); // Encender el buzzer
+    delay(duration);                 // Mantener encendido por 'duration' ms
+    digitalWrite(BUZZER_PIN, LOW);  // Apagar el buzzer
+    delay(pause);               // Esperar 'pause' ms antes del siguiente pitido
   }
 }
 
