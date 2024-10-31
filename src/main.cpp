@@ -14,8 +14,13 @@
 #define MISO_PIN 19 // GPIO 19
 #define SCK_PIN 18  // GPIO 18
 
+#define SERVO_CHANNEL 2 
 #define SERVO_PIN 13
+
 #define BUZZER_PIN 12 
+#define BUZZER_CHANNEL 1
+#define BUZZER_RESOLUTION 8
+
 
 Servo myServo;
 
@@ -26,9 +31,6 @@ const char *mqtt_server = "10.80.128.11"; // Dirección IP del broker MQTT local
 
 WiFiClient espClient;                       // Cliente Wi-Fi
 PubSubClient client(espClient);             // Cliente MQTT
-
-#define BUZZER_CHANNEL 0
-#define BUZZER_RESOLUTION 8
 
 bool actionOpen = false;
 bool tokenCondition = false;
@@ -96,11 +98,12 @@ MFRC522::MIFARE_Key key;
 //Function to beep with the buzzer.
 void beep(int times, int duration, int pause, int frequency) {
    ledcWriteTone(BUZZER_CHANNEL, frequency);
+   Serial.print("beep");
   for(int i = 0; i < times; i++) {
-    ledcWrite(BUZZER_CHANNEL, 128);    // Encender el buzzer
-    delay(duration);                   // Mantener encendido por 'duration' ms
-    ledcWrite(BUZZER_CHANNEL, 0);      // Apagar el buzzer
-    delay(pause);                      // Esperar 'pause' ms antes del siguiente pitido
+     digitalWrite(BUZZER_PIN, HIGH); // Encender el buzzer
+    delay(duration);                 // Mantener encendido por 'duration' ms
+    digitalWrite(BUZZER_PIN, LOW);  // Apagar el buzzer
+    delay(pause);               // Esperar 'pause' ms antes del siguiente pitido
   }
 }
 
@@ -184,17 +187,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
       String status;
       if (strcmp(action, "open") == 0) {
         Serial.println("Open command received.");
-        openDoor();
         beep(1, 100, 100, 800); 
+        openDoor();
         status = "opened";
       } else if (strcmp(action, "close") == 0) {
         Serial.println("Close command received.");
         closeDoor();
-        beep(1, 100, 100, 600); 
         status = "closed";
       } else {
         Serial.println("Action error.");
         isPending = false;
+        beep(2, 100, 100, 600);
         return; // Exit if the action is unknown
       }
 
@@ -262,7 +265,6 @@ void setup_wifi()
 //Function for initialising the RFID.
 void setup_rfid()
 {
-  Serial.begin(115200);
   delay(1000); 
   Serial.println(F("Iniciando el lector MFRC522..."));
 
@@ -292,21 +294,15 @@ void setup()
   Serial.begin(115200); 
   setup_wifi();         // Conectar a Wi-Fi
   setup_rfid();
-  myServo.attach(SERVO_PIN);
+  myServo.attach(SERVO_PIN, 544, 2400); // Asignar sin especificar el canal
 
   pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
   digitalWrite(BUZZER_PIN, LOW);    // Asegurar que el buzzer esté apagado al inicio
-  // pinMode(BUZZER_PIN, OUTPUT);   // Esta línea es redundante y puede eliminarse
-  ledcSetup(BUZZER_CHANNEL, 1000, BUZZER_RESOLUTION); // Canal 0, 1kHz, 8 bits
-  ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL); // Asignar el canal al pin
 
   // setup_ssl(); // Setup SSL Certificates (descomentarlo si usas SSL)
 
   client.setServer(mqtt_server, mqtt_port); // Establecer el broker MQTT y el puerto
   client.setCallback(callback); // Asignar la función de callback
-
-  // Inicializar buzzer con un pitido de prueba
-  beep(1, 100, 100, 600); // Un pitido corto
 }
 
 //Function to Convert Byte Array to Hexadecimal String
@@ -329,6 +325,7 @@ void handleRFID(){
     delay(500); // Esperar medio segundo antes de volver a intentar
     return;
   }
+  beep(1, 100, 100, 800); 
   Serial.println(F("Tarjeta detectada."));
   Serial.print(F("Pending: "));
   Serial.println(isPending ? "true" : "false");
@@ -336,10 +333,10 @@ void handleRFID(){
   
   Serial.print(F("Angle: "));
   Serial.println(doorAngle);
-if(!isPending && doorAngle == 0)
-{
-isPending = true;
-Serial.println(F("Leyendo..."));
+  if(!isPending && doorAngle == 0)
+  {
+  isPending = true;
+  Serial.println(F("Leyendo..."));
   // Verificar si el NUID ha sido leído
   if (!rfid.PICC_ReadCardSerial())
   {
