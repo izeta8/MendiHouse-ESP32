@@ -7,7 +7,7 @@
 #include <ESP32Servo.h>
 #include <SPIFFS.h> // Sistema para leer archivos y usar parte de la memoria flash del ESP32
 
-// Definir los pines SPI
+// Define PINs
 #define SS_PIN 21   // GPIO 21
 #define RST_PIN 22  // GPIO 22
 #define MOSI_PIN 23 // GPIO 23
@@ -21,11 +21,11 @@ Servo myServo;
 
 const char *ssid = "AEG-IKASLE";          // Wi-Fi SSID
 const char *password = "Ea25dneAEG";      // Wi-Fi Password
-const int mqtt_port = 1883;               // Puerto para MQTT
-const char *mqtt_server = "10.80.128.11"; // Dirección IP del broker MQTT local
+const int mqtt_port = 1883;               // MQTT Port
+const char *mqtt_server = "10.80.128.11"; // MQTT Broker IP
 
-WiFiClient espClient;                       // Cliente Wi-Fi
-PubSubClient client(espClient);             // Cliente MQTT
+WiFiClient espClient;            // Wi-Fi Client
+PubSubClient client(espClient);  // MQTT Client 
 
 #define BUZZER_CHANNEL 0
 #define BUZZER_RESOLUTION 8
@@ -41,34 +41,40 @@ byte nuidPICC[4] = {0, 0, 0, 0};
 MFRC522 rfid(SS_PIN, RST_PIN); 
 MFRC522::MIFARE_Key key;
 
+// Function definitions
+void setup_wifi();
+void setup_rfid();
+void beep(int times, int duration, int pause, int frequency);
+void mqtt_callback(char* topic, byte* payload, unsigned int length);
+void reconnect_mqtt();
+void handleRFID();
+void openDoor();
+void closeDoor();
+void printHex(byte *buffer, byte bufferSize);
+void printDec(byte *buffer, byte bufferSize);
+String byteArrayToHexString(byte *buffer, byte bufferSize);
 
 void setup()
 {
   Serial.begin(115200); 
-  setup_wifi();         // Conectar a Wi-Fi
+  setup_wifi();  
   setup_rfid();
-  myServo.attach(SERVO_PIN);
 
-  pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
-  digitalWrite(BUZZER_PIN, LOW);    // Asegurar que el buzzer esté apagado al inicio
+  pinMode(BUZZER_PIN, OUTPUT);      // Setup buzzer pin as output
+  digitalWrite(BUZZER_PIN, LOW);    // Make sure buzzer is turned of in the beggining.
   // pinMode(BUZZER_PIN, OUTPUT);   // Esta línea es redundante y puede eliminarse
-  ledcSetup(BUZZER_CHANNEL, 1000, BUZZER_RESOLUTION); // Canal 0, 1kHz, 8 bits
-  ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL); // Asignar el canal al pin
 
   // setup_ssl(); // Setup SSL Certificates (descomentarlo si usas SSL)
 
-  client.setServer(mqtt_server, mqtt_port); // Establecer el broker MQTT y el puerto
-  client.setCallback(callback); // Asignar la función de callback
-
-  // Inicializar buzzer con un pitido de prueba
-  beep(1, 100, 100, 600); // Un pitido corto
+  client.setServer(mqtt_server, mqtt_port); // Set MQTT broker and port
+  client.setCallback(mqtt_callback); // Asign topics callback function.
 }
 
 void loop()
 {
   if (!client.connected())
   {
-    reconnect(); // Try to reconnect if disconnected
+    reconnect_mqtt(); // Try to reconnect if disconnected
     Serial.println("Reconnecting");
   }
   client.loop(); // Ensure the client maintains its connection
@@ -81,11 +87,12 @@ void loop()
 // -----   MQTT   ----- //
 // -------------------- //
 
-void reconnect()
+void reconnect_mqtt()
 {
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection...");
+    
     // Intentar conectar
     if (client.connect("ESP32_MendiHouse"))
     {
@@ -104,7 +111,7 @@ void reconnect()
 }
 
 // Function to handle received MQTT messages.
-void callback(char* topic, byte* payload, unsigned int length) {
+void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   char messageBuffer[length + 1];
   memcpy(messageBuffer, payload, length);
   messageBuffer[length] = '\0'; 
@@ -252,30 +259,32 @@ void handleRFID(){
   
   Serial.print(F("Angle: "));
   Serial.println(doorAngle);
-if(!isPending && doorAngle == 0)
-{
-isPending = true;
-Serial.println(F("Leyendo..."));
-  // Verificar si el NUID ha sido leído
-  if (!rfid.PICC_ReadCardSerial())
+    
+  if (!isPending && doorAngle == 0)
   {
-    Serial.println(F("Error al leer la tarjeta."));
-    isPending = false;
-    return;
-  }
+    isPending = true;
+    Serial.println(F("Leyendo..."));
+    
+    // Verificar si el NUID ha sido leído
+    if (!rfid.PICC_ReadCardSerial())
+    {
+      Serial.println(F("Error al leer la tarjeta."));
+      isPending = false;
+      return;
+    }
 
-  Serial.print(F("Tipo de PICC: "));
-  MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
-  Serial.println(rfid.PICC_GetTypeName(piccType));
+    Serial.print(F("Tipo de PICC: "));
+    MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
+    Serial.println(rfid.PICC_GetTypeName(piccType));
 
-  // Verificar si el PICC es de tipo MIFARE Classic
-  if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&
-      piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
-      piccType != MFRC522::PICC_TYPE_MIFARE_4K)
-  {
-    Serial.println(F("Tu tarjeta no es de tipo MIFARE Classic."));
-    return;
-  }
+    // Verificar si el PICC es de tipo MIFARE Classic
+    if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&
+        piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
+        piccType != MFRC522::PICC_TYPE_MIFARE_4K)
+    {
+      Serial.println(F("Tu tarjeta no es de tipo MIFARE Classic."));
+      return;
+    }
 
     // Almacenar el NUID en el array
     for (byte i = 0; i < 4; i++)
@@ -298,16 +307,16 @@ Serial.println(F("Leyendo..."));
     // **Publish the NUID Hex String**
     client.publish("cardId", nuidHex.c_str());
     Serial.println(F("NUID published to MQTT topic 'cardId'."));
- 
-  // Detener la comunicación con la tarjeta
-  rfid.PICC_HaltA();
+  
+    // Detener la comunicación con la tarjeta
+    rfid.PICC_HaltA();
 
-  // Detener la encriptación en el lector
-  rfid.PCD_StopCrypto1();
+    // Detener la encriptación en el lector
+    rfid.PCD_StopCrypto1();
 
-  delay(1000); // Esperar un segundo antes de la siguiente lectura
+    delay(1000); // Esperar un segundo antes de la siguiente lectura
 
-}
+  }
 }
 
 // -------------------------- //
@@ -316,6 +325,7 @@ Serial.println(F("Leyendo..."));
 
 //Function for operating the door lock.
 void closeDoor() {
+  myServo.attach(SERVO_PIN, 554, 2400);
   Serial.println("Door closing...");
   // Giro de 90 a 0º. CERRAR PUERTA
   for (int i = 90; i >= 0; i--) {
@@ -330,6 +340,7 @@ void closeDoor() {
 //Function to control the opening of the door.
 void openDoor() {
   Serial.println("Door opening...");
+  myServo.attach(SERVO_PIN, 554, 2400);
   // Giro de 0 a 90º. ABRIR PUERTA
   for (int i = 0; i <= 90; i++) {
     myServo.write(i);
