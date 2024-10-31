@@ -98,7 +98,6 @@ MFRC522::MIFARE_Key key;
 //Function to beep with the buzzer.
 void beep(int times, int duration, int pause, int frequency) {
    ledcWriteTone(BUZZER_CHANNEL, frequency);
-   Serial.print("beep");
   for(int i = 0; i < times; i++) {
      digitalWrite(BUZZER_PIN, HIGH); // Encender el buzzer
     delay(duration);                 // Mantener encendido por 'duration' ms
@@ -123,6 +122,7 @@ String readFile(const char *path)
 
 //Function for operating the door lock.
 void closeDoor() {
+   myServo.attach(SERVO_PIN, 544, 2400); 
   Serial.println("Door closing...");
   // Giro de 90 a 0º. CERRAR PUERTA
   for (int i = 90; i >= 0; i--) {
@@ -136,6 +136,7 @@ void closeDoor() {
 
 //Function to control the opening of the door.
 void openDoor() {
+  myServo.attach(SERVO_PIN, 544, 2400); 
   Serial.println("Door opening...");
   // Giro de 0 a 90º. ABRIR PUERTA
   for (int i = 0; i <= 90; i++) {
@@ -294,7 +295,6 @@ void setup()
   Serial.begin(115200); 
   setup_wifi();         // Conectar a Wi-Fi
   setup_rfid();
-  myServo.attach(SERVO_PIN, 544, 2400); // Asignar sin especificar el canal
 
   pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
   digitalWrite(BUZZER_PIN, LOW);    // Asegurar que el buzzer esté apagado al inicio
