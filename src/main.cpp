@@ -38,6 +38,49 @@ int  doorAngle = 0;
 
 byte nuidPICC[4] = {0, 0, 0, 0}; 
 
+MFRC522 rfid(SS_PIN, RST_PIN); 
+MFRC522::MIFARE_Key key;
+
+
+void setup()
+{
+  Serial.begin(115200); 
+  setup_wifi();         // Conectar a Wi-Fi
+  setup_rfid();
+  myServo.attach(SERVO_PIN);
+
+  pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
+  digitalWrite(BUZZER_PIN, LOW);    // Asegurar que el buzzer esté apagado al inicio
+  // pinMode(BUZZER_PIN, OUTPUT);   // Esta línea es redundante y puede eliminarse
+  ledcSetup(BUZZER_CHANNEL, 1000, BUZZER_RESOLUTION); // Canal 0, 1kHz, 8 bits
+  ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL); // Asignar el canal al pin
+
+  // setup_ssl(); // Setup SSL Certificates (descomentarlo si usas SSL)
+
+  client.setServer(mqtt_server, mqtt_port); // Establecer el broker MQTT y el puerto
+  client.setCallback(callback); // Asignar la función de callback
+
+  // Inicializar buzzer con un pitido de prueba
+  beep(1, 100, 100, 600); // Un pitido corto
+}
+
+void loop()
+{
+  if (!client.connected())
+  {
+    reconnect(); // Try to reconnect if disconnected
+    Serial.println("Reconnecting");
+  }
+  client.loop(); // Ensure the client maintains its connection
+
+  handleRFID();
+}
+
+
+// -------------------- //
+// -----   MQTT   ----- //
+// -------------------- //
+
 void reconnect()
 {
   while (!client.connected())
@@ -60,103 +103,7 @@ void reconnect()
   }
 }
 
-
-//Auxiliary routine to display an array of bytes in hexadecimal format.
-void printHex(byte *buffer, byte bufferSize)
-{
-  for (byte i = 0; i < bufferSize; i++)
-  {
-    if (buffer[i] < 0x10)
-    {
-      Serial.print(" 0");
-    }
-    else
-    {
-      Serial.print(" ");
-    }
-    Serial.print(buffer[i], HEX);
-  }
-}
-
-
-//Auxiliary routine to display an array of bytes in decimal format.
-void printDec(byte *buffer, byte bufferSize)
-{
-  for (byte i = 0; i < bufferSize; i++)
-  {
-    Serial.print(' ');
-    Serial.print(buffer[i], DEC);
-  }
-}
-
-MFRC522 rfid(SS_PIN, RST_PIN); 
-MFRC522::MIFARE_Key key;
-
-
-//Function to beep with the buzzer.
-void beep(int times, int duration, int pause, int frequency) {
-   ledcWriteTone(BUZZER_CHANNEL, frequency);
-  for(int i = 0; i < times; i++) {
-    ledcWrite(BUZZER_CHANNEL, 128);    // Encender el buzzer
-    delay(duration);                   // Mantener encendido por 'duration' ms
-    ledcWrite(BUZZER_CHANNEL, 0);      // Apagar el buzzer
-    delay(pause);                      // Esperar 'pause' ms antes del siguiente pitido
-  }
-}
-
-// Function to read file from SPIFFS
-String readFile(const char *path)
-{
-  File file = SPIFFS.open(path, "r");
-  if (!file)
-  {
-    Serial.printf("Failed to open file for reading: %s\n", path);
-    return String();
-  }
-  String content = file.readString();
-  file.close();
-  return content;
-}
-
-//Function for operating the door lock.
-void closeDoor() {
-  Serial.println("Door closing...");
-  // Giro de 90 a 0º. CERRAR PUERTA
-  for (int i = 90; i >= 0; i--) {
-    myServo.write(i);
-     doorAngle = i;
-    delay(20);
-  }
-  Serial.println("Door closed");
-  isPending = false;
-}
-
-//Function to control the opening of the door.
-void openDoor() {
-  Serial.println("Door opening...");
-  // Giro de 0 a 90º. ABRIR PUERTA
-  for (int i = 0; i <= 90; i++) {
-    myServo.write(i);
-
-    doorAngle = i;
-
-    delay(20);
-  }
-  Serial.println("Door opened");
-}
-
-//Function to check and open the door if the conditions are met.
-void checkAndOpenDoor() {
-  if (actionOpen && tokenCondition) {
-    openDoor();
-    beep(1, 100, 100, 800);
-    actionOpen = false;
-    tokenCondition = false;
-  } 
-}
-
-
-//Function to handle received MQTT messages.
+// Function to handle received MQTT messages.
 void callback(char* topic, byte* payload, unsigned int length) {
   char messageBuffer[length + 1];
   memcpy(messageBuffer, payload, length);
@@ -223,9 +170,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 
+// -------------------- //
+// -----   WIFI   ----- //
+// -------------------- //
 
-
-//Function to connect to Wi-Fi.
+// Function to connect to Wi-Fi.
 void setup_wifi()
 {
   delay(10);
@@ -258,6 +207,9 @@ void setup_wifi()
   }
 }
 
+// ---------------------------------- //
+// -----   RFID (CARD READER)   ----- //
+// ----------------------------------- //
 
 //Function for initialising the RFID.
 void setup_rfid()
@@ -284,42 +236,6 @@ void setup_rfid()
   Serial.print(F("Usando la llave:"));
   printHex(key.keyByte, MFRC522::MF_KEY_SIZE);
   Serial.println();
-}
-
-
-void setup()
-{
-  Serial.begin(115200); 
-  setup_wifi();         // Conectar a Wi-Fi
-  setup_rfid();
-  myServo.attach(SERVO_PIN);
-
-  pinMode(BUZZER_PIN, OUTPUT);      // Configurar el pin del buzzer como salida
-  digitalWrite(BUZZER_PIN, LOW);    // Asegurar que el buzzer esté apagado al inicio
-  // pinMode(BUZZER_PIN, OUTPUT);   // Esta línea es redundante y puede eliminarse
-  ledcSetup(BUZZER_CHANNEL, 1000, BUZZER_RESOLUTION); // Canal 0, 1kHz, 8 bits
-  ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL); // Asignar el canal al pin
-
-  // setup_ssl(); // Setup SSL Certificates (descomentarlo si usas SSL)
-
-  client.setServer(mqtt_server, mqtt_port); // Establecer el broker MQTT y el puerto
-  client.setCallback(callback); // Asignar la función de callback
-
-  // Inicializar buzzer con un pitido de prueba
-  beep(1, 100, 100, 600); // Un pitido corto
-}
-
-//Function to Convert Byte Array to Hexadecimal String
-String byteArrayToHexString(byte *buffer, byte bufferSize) {
-  String hexString = "";
-  for (byte i = 0; i < bufferSize; i++) {
-    if (buffer[i] < 0x10) {
-      hexString += "0"; // Add leading zero for single digit hex
-    }
-    hexString += String(buffer[i], HEX);
-  }
-  hexString.toUpperCase(); 
-  return hexString;  
 }
 
 void handleRFID(){
@@ -394,18 +310,120 @@ Serial.println(F("Leyendo..."));
 }
 }
 
-void loop()
-{
-  if (!client.connected())
-  {
-    reconnect(); // Try to reconnect if disconnected
-    Serial.println("Reconnecting");
-  }
-  client.loop(); // Ensure the client maintains its connection
+// -------------------------- //
+// -----   SERVO (DOOR) ----- //
+// -------------------------- //
 
-  handleRFID();
+//Function for operating the door lock.
+void closeDoor() {
+  Serial.println("Door closing...");
+  // Giro de 90 a 0º. CERRAR PUERTA
+  for (int i = 90; i >= 0; i--) {
+    myServo.write(i);
+     doorAngle = i;
+    delay(20);
+  }
+  Serial.println("Door closed");
+  isPending = false;
 }
 
+//Function to control the opening of the door.
+void openDoor() {
+  Serial.println("Door opening...");
+  // Giro de 0 a 90º. ABRIR PUERTA
+  for (int i = 0; i <= 90; i++) {
+    myServo.write(i);
+
+    doorAngle = i;
+
+    delay(20);
+  }
+  Serial.println("Door opened");
+}
+
+//Function to check and open the door if the conditions are met.
+void checkAndOpenDoor() {
+  if (actionOpen && tokenCondition) {
+    openDoor();
+    beep(1, 100, 100, 800);
+    actionOpen = false;
+    tokenCondition = false;
+  } 
+}
+
+// ---------------------- //
+// -----   BUZZER   ----- //
+// ---------------------- //
+
+//Function to beep with the buzzer.
+void beep(int times, int duration, int pause, int frequency) {
+   ledcWriteTone(BUZZER_CHANNEL, frequency);
+  for(int i = 0; i < times; i++) {
+    ledcWrite(BUZZER_CHANNEL, 128);    // Encender el buzzer
+    delay(duration);                   // Mantener encendido por 'duration' ms
+    ledcWrite(BUZZER_CHANNEL, 0);      // Apagar el buzzer
+    delay(pause);                      // Esperar 'pause' ms antes del siguiente pitido
+  }
+}
+
+// ------------------------- //
+// -----   UTILITIES   ----- //
+// ------------------------- //
+
+
+//Function to Convert Byte Array to Hexadecimal String
+String byteArrayToHexString(byte *buffer, byte bufferSize) {
+  String hexString = "";
+  for (byte i = 0; i < bufferSize; i++) {
+    if (buffer[i] < 0x10) {
+      hexString += "0"; // Add leading zero for single digit hex
+    }
+    hexString += String(buffer[i], HEX);
+  }
+  hexString.toUpperCase(); 
+  return hexString;  
+}
+
+void printHex(byte *buffer, byte bufferSize)
+{
+  for (byte i = 0; i < bufferSize; i++)
+  {
+    if (buffer[i] < 0x10)
+    {
+      Serial.print(" 0");
+    }
+    else
+    {
+      Serial.print(" ");
+    }
+    Serial.print(buffer[i], HEX);
+  }
+}
+
+
+void printDec(byte *buffer, byte bufferSize)
+{
+  for (byte i = 0; i < bufferSize; i++)
+  {
+    Serial.print(' ');
+    Serial.print(buffer[i], DEC);
+  }
+}
+
+
+// Function to read file from SPIFFS
+String readFile(const char *path)
+{
+  File file = SPIFFS.open(path, "r");
+  if (!file)
+  {
+    Serial.printf("Failed to open file for reading: %s\n", path);
+    return String();
+  }
+  String content = file.readString();
+  file.close();
+  return content;
+}
 
 
 // const char* device_key =
