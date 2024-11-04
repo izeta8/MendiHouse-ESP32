@@ -21,7 +21,7 @@ Servo myServo;
 const char *ssid = "AEG-IKASLE";          // Wi-Fi SSID
 const char *password = "Ea25dneAEG";      // Wi-Fi Password
 const int mqtt_port = 1883;               // MQTT Port
-const char *mqtt_server = "10.80.128.11"; // MQTT Broker IP
+const char *mqtt_server = "10.80.128.249"; // MQTT Broker IP
 
 WiFiClient espClient;            // Wi-Fi Client
 PubSubClient client(espClient);  // MQTT Client 
