@@ -5,9 +5,8 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <ESP32Servo.h>
-#include <SPIFFS.h> // Sistema para leer archivos y usar parte de la memoria flash del ESP32
+#include <SPIFFS.h>
 
-// Define PINs
 #define SS_PIN 21   // GPIO 21
 #define RST_PIN 22  // GPIO 22
 #define MOSI_PIN 23 // GPIO 23
@@ -18,17 +17,20 @@
 
 Servo myServo;
 
-const char *ssid = "AEG-IKASLE";          // Wi-Fi SSID
-const char *password = "Ea25dneAEG";      // Wi-Fi Password
-const int mqtt_port = 1883;               // MQTT Port
-const char *mqtt_server = "10.80.128.249"; // MQTT Broker IP
+const char *ssid = "AEG-IKASLE";          
+const char *password = "Ea25dneAEG";      
+const int mqtt_port = 1883;               
+const char *mqtt_server = "10.80.128.2"; 
 
-WiFiClient espClient;            // Wi-Fi Client
-PubSubClient client(espClient);  // MQTT Client 
+WiFiClient espClient;            
+PubSubClient client(espClient);  
 
 #define BUZZER_PIN 12 
 #define BUZZER_CHANNEL 1
 #define BUZZER_RESOLUTION 8
+
+#define LED_GREEN_PIN 26 
+#define LED_RED_PIN 27   
 
 bool actionOpen = false;
 bool tokenCondition = false;
@@ -52,6 +54,8 @@ void openDoor();
 void closeDoor();
 void printHex(byte *buffer, byte bufferSize);
 void printDec(byte *buffer, byte bufferSize);
+void indicateSuccess(int duration);
+void indicateError(int duration);
 String byteArrayToHexString(byte *buffer, byte bufferSize);
 
 void setup()
@@ -60,24 +64,24 @@ void setup()
   setup_wifi();  
   setup_rfid();
 
-  pinMode(BUZZER_PIN, OUTPUT);      // Setup buzzer pin as output
-  digitalWrite(BUZZER_PIN, LOW);    // Make sure buzzer is turned of in the beggining.
-  // pinMode(BUZZER_PIN, OUTPUT);   // Esta línea es redundante y puede eliminarse
+  pinMode(BUZZER_PIN, OUTPUT);      
+  digitalWrite(BUZZER_PIN, LOW);   
 
+  pinMode(LED_GREEN_PIN, OUTPUT);
+  pinMode(LED_RED_PIN, OUTPUT);
   // setup_ssl(); // Setup SSL Certificates (descomentarlo si usas SSL)
 
-  client.setServer(mqtt_server, mqtt_port); // Set MQTT broker and port
-  client.setCallback(mqtt_callback); // Asign topics callback function.
+  client.setServer(mqtt_server, mqtt_port); 
+  client.setCallback(mqtt_callback); 
 }
 
 void loop()
 {
   if (!client.connected())
   {
-    reconnect_mqtt(); // Try to reconnect if disconnected
-    Serial.println("Reconnecting");
+    reconnect_mqtt(); 
   }
-  client.loop(); // Ensure the client maintains its connection
+  client.loop(); 
 
   handleRFID();
 }
@@ -93,7 +97,6 @@ void reconnect_mqtt()
   {
     Serial.print("Attempting MQTT connection...");
     
-    // Intentar conectar
     if (client.connect("ESP32_MendiHouse"))
     {
       Serial.println("connected");
@@ -103,8 +106,6 @@ void reconnect_mqtt()
     {
       Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
       delay(5000);
     }
   }
@@ -138,6 +139,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       String status;
       if (strcmp(action, "open") == 0) {
         Serial.println("Open command received.");
+        indicateSuccess(1500);
         beep(1, 100, 100, 800); 
         openDoor();
         status = "opened";
@@ -148,8 +150,9 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       } else {
         Serial.println("Action error.");
         isPending = false;
+        indicateError(1500);
         beep(2, 100, 100, 800); 
-        return; // Exit if the action is unknown
+        return; 
       }
 
       Serial.print("Token associated with the command: ");
@@ -191,7 +194,7 @@ void setup_wifi()
 
   WiFi.begin(ssid, password); 
 
-  int attempts = 0; // Contador de intentos
+  int attempts = 0; 
   while (WiFi.status() != WL_CONNECTED && attempts < 30)
   { 
     delay(1000);
@@ -252,14 +255,10 @@ void handleRFID(){
     delay(500); // Esperar medio segundo antes de volver a intentar
     return;
   }
-  beep(1, 100, 100, 800);
+  if(!isPending)beep(1, 100, 100, 800);
   Serial.println(F("Tarjeta detectada."));
   Serial.print(F("Pending: "));
   Serial.println(isPending ? "true" : "false");
-
-  
-  Serial.print(F("Angle: "));
-  Serial.println(doorAngle);
     
   if (!isPending && doorAngle == 0)
   {
@@ -269,6 +268,7 @@ void handleRFID(){
     // Verificar si el NUID ha sido leído
     if (!rfid.PICC_ReadCardSerial())
     {
+      beep(2, 100, 100, 800);
       Serial.println(F("Error al leer la tarjeta."));
       isPending = false;
       return;
@@ -301,11 +301,11 @@ void handleRFID(){
     printDec(rfid.uid.uidByte, rfid.uid.size);
     Serial.println();
 
-    String nuidHex = byteArrayToHexString(nuidPICC, 4); // Assuming 4-byte NUID
+    String nuidHex = byteArrayToHexString(nuidPICC, 4); 
     Serial.print(F("NUID Hex String: "));
     Serial.println(nuidHex);
       
-    // **Publish the NUID Hex String**
+
     client.publish("cardId", nuidHex.c_str());
     Serial.println(F("NUID published to MQTT topic 'cardId'."));
   
@@ -314,9 +314,6 @@ void handleRFID(){
 
     // Detener la encriptación en el lector
     rfid.PCD_StopCrypto1();
-
-    delay(1000); // Esperar un segundo antes de la siguiente lectura
-
   }
 }
 
@@ -371,11 +368,26 @@ void checkAndOpenDoor() {
 void beep(int times, int duration, int pause, int frequency) {
   ledcWriteTone(BUZZER_CHANNEL, frequency);
   for(int i = 0; i < times; i++) {
-     digitalWrite(BUZZER_PIN, HIGH); // Encender el buzzer
-    delay(duration);                 // Mantener encendido por 'duration' ms
-    digitalWrite(BUZZER_PIN, LOW);  // Apagar el buzzer
-    delay(pause);               // Esperar 'pause' ms antes del siguiente pitido
+     digitalWrite(BUZZER_PIN, HIGH);
+    delay(duration);                 
+    digitalWrite(BUZZER_PIN, LOW);  
+    delay(pause);              
   }
+}
+
+// ---------------------- //
+// -----   LEDS   ----- //
+// ---------------------- //
+
+void indicateSuccess(int duration) {
+  digitalWrite(LED_GREEN_PIN, HIGH); 
+  delay(duration);                    
+  digitalWrite(LED_GREEN_PIN, LOW);  
+}
+void indicateError(int duration) {
+  digitalWrite(LED_RED_PIN, HIGH);
+  delay(duration);                  
+  digitalWrite(LED_RED_PIN, LOW);  
 }
 
 // ------------------------- //
@@ -388,7 +400,7 @@ String byteArrayToHexString(byte *buffer, byte bufferSize) {
   String hexString = "";
   for (byte i = 0; i < bufferSize; i++) {
     if (buffer[i] < 0x10) {
-      hexString += "0"; // Add leading zero for single digit hex
+      hexString += "0"; 
     }
     hexString += String(buffer[i], HEX);
   }
@@ -436,6 +448,7 @@ String readFile(const char *path)
   file.close();
   return content;
 }
+
 
 
 // const char* device_key =
