@@ -54,8 +54,10 @@ void openDoor();
 void closeDoor();
 void printHex(byte *buffer, byte bufferSize);
 void printDec(byte *buffer, byte bufferSize);
-void indicateSuccess(int duration);
-void indicateError(int duration);
+void indicateSuccess();
+void indicateError();
+void stopSuccess();
+void stopError();
 String byteArrayToHexString(byte *buffer, byte bufferSize);
 
 void setup()
@@ -139,8 +141,10 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       String status;
       if (strcmp(action, "open") == 0) {
         Serial.println("Open command received.");
-        indicateSuccess(1500);
-        beep(1, 100, 100, 800); 
+        indicateSuccess();
+        beep(1, 100, 100, 800);
+        delay(1500);
+        stopSuccess();
         openDoor();
         status = "opened";
       } else if (strcmp(action, "close") == 0) {
@@ -150,8 +154,10 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       } else {
         Serial.println("Action error.");
         isPending = false;
-        indicateError(1500);
+        indicateError();
         beep(2, 100, 100, 800); 
+        delay(1500);
+        stopError();
         return; 
       }
 
@@ -379,16 +385,20 @@ void beep(int times, int duration, int pause, int frequency) {
 // -----   LEDS   ----- //
 // ---------------------- //
 
-void indicateSuccess(int duration) {
-  digitalWrite(LED_GREEN_PIN, HIGH); 
-  delay(duration);                    
-  digitalWrite(LED_GREEN_PIN, LOW);  
+void indicateSuccess() {
+  digitalWrite(LED_GREEN_PIN, HIGH);                     
+   
 }
-void indicateError(int duration) {
-  digitalWrite(LED_RED_PIN, HIGH);
-  delay(duration);                  
-  digitalWrite(LED_RED_PIN, LOW);  
+void indicateError() {
+  digitalWrite(LED_RED_PIN, HIGH);                  
 }
+void stopSuccess() {
+  digitalWrite(LED_GREEN_PIN, LOW); 
+}
+void stopError() {
+  digitalWrite(LED_RED_PIN, LOW); 
+}
+
 
 // ------------------------- //
 // -----   UTILITIES   ----- //
