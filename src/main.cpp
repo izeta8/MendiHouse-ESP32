@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include <WiFi.h>
+//#include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <SPI.h>
 #include <MFRC522.h>
 #include <PubSubClient.h>
@@ -19,10 +20,109 @@ Servo myServo;
 
 const char *ssid = "AEG-IKASLE";          
 const char *password = "Ea25dneAEG";      
-const int mqtt_port = 1883;               
+const int mqtt_port = 8883; //8883 with SSL               
 const char *mqtt_server = "10.80.128.2"; 
 
-WiFiClient espClient;            
+///////////////////////////////////////////////////////////////////////
+const char* device_key =
+"-----BEGIN PRIVATE KEY-----\n"
+"MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCs88VaoNw/uY8A\n"
+"g0TfijYeUwdxhE2n+gaRVcEHHB2sPxusNpkP/MPZu41dovVl11LGQ2UYADDPyVyw\n"
+"i/ZBTvfkSAGHgeOPW8HNK8EGLnqLPT2TKsHAP3FGFDcDHyUcCYT0ZfOoMiIhoRNW\n"
+"3hc+EJxT4OOOGVZXnu8A7irw2SYOul2xM7aZYgiIigmg+PYn5Lq6XcAerJo9zueG\n"
+"qEIIolRtexlMNVE5adWBbTsEbDBXswFn9Gnj5YwN7R5YBboFDIqsnMD76lnuK8gm\n"
+"3WQ8JP1LTKL7tsL5eDMSl8AKWdzN4aDSaapEEMP44UxeBHmx+aspu0Uch9GhvNRr\n"
+"94nwDx7lAgMBAAECggEAAIyFg9Qe3tTn70h7X3pA0bfRvjp9RJs2ih+LjUo5jeJl\n"
+"ZBaIRdS3imld+X4a6UfVq2trVrgpb39kG+tVzL9DaiYQWy2+WyYfZ1dMNYjQOsDn\n"
+"ASCRnNqWsXI++nOO2pftJBluvInsMc8hEJWD3V6QIHQGRN0vuPd4KriWykzmIgXU\n"
+"DgGHduGoY0rNh9S0httZ8zAtKA5aAVL7K/2eCXZYF2ryTRT+dNAV3CXM0qmd0twP\n"
+"XT1O9hwyQLCpBxdRResULzK6XdsqS7gnUT5vNe4va0wIp8bYWJtYy2oa7oyJn7Ti\n"
+"qk8p1ZaHVyjMbYBERiDYeJiw86Zz7DhhHzO3iohaAQKBgQC7GZvKuky+iB+BfZC4\n"
+"4DWNUiFURwk/s7f6t64mBPiMwdFUFMUNXe+48MfbJJ2B2I8TZhHHX8rZN/5BNPN5\n"
+"a6cI5oofxQOylJ7audm9yYNFH64RdSVPWKSY9PBNk5nIGmyFfCjQUY1prvyL8ZyU\n"
+"+8sGiZBKRgnH6L5MGlLyX+WVrQKBgQDspGnN09schlXTqoBqIHMbgyhOBI0f3JFk\n"
+"OlA6r4B7p+yT82IQZx405MG365MBmlxFBfsAxSQZIR36+0MI7KfXli4+CLU8ajpr\n"
+"tLRSTnPAMTc+EQd0TYMbo+5n0ATKjehXZ7Hnyq6EhMyk+lIEObo2iwuJL9ct0Tzh\n"
+"cxJyVTelGQKBgEsAHfprKd5qtK50xjHF9tGara+Z9jQp98MyJEYrUfMisqXQ2Zjd\n"
+"If5xzrui9tyZEemFzfStCqR+lJZRApSWudOQjqfjkvLgLrmhLI6um8d2xpFK81TW\n"
+"RMznyvheBZQ4O25a8gVn25cUxTnX9ZunP6B0Pnn3j24qdzYMi1mLZX3VAoGBAL8n\n"
+"NFxSVP1eujen0+FmYvUHZmhXHtRs7HkE7cfp+qRoih8dC8rqMSlS2/TAc1hpIz2S\n"
+"TiZaGQW/jaMukgDEgfQQ2Tu89wFdYeGc78hInRHT76bQRLA66LxMGIl9LFGefd8U\n"
+"4U22mHBtgY2Gsve81eG3QdNIdM4K5d3LgUwf8DoJAoGAKDpkajB8FrU73ORQJp2N\n"
+"L4V+wInOxEeUaUbeXbyvJIOFBmgKkYeJD4Q4dxVmjipo96VUrhbDBIuZETgEWYN/\n"
+"7KVvtU/vIdgg8fUzS3hOX5ssnNhae2ebzDRj9SlnnKvXSqRaY/X2qcwMpP2iCY8p\n"
+"6R55mOZEF9WthcMMIQr/gj4=\n"
+"-----END PRIVATE KEY-----\n";
+
+const char* device_crt =
+"-----BEGIN CERTIFICATE-----\n"
+"MIIEZjCCAk4CFDFJOJOeCY/3NWwPFe28nvzIOCBAMA0GCSqGSIb3DQEBCwUAMIGJ\n"
+"MQswCQYDVQQGEwJFVTERMA8GA1UECAwIR0lQVVpLT0ExETAPBgNVBAcMCERPTk9T\n"
+"VElBMQwwCgYDVQQKDANBRUcxEDAOBgNVBAsMB0tBT1RJS0ExEDAOBgNVBAMMB0tB\n"
+"T1RJS0ExIjAgBgkqhkiG9w0BCQEWE29za2FyLmNhbHZvQGFlZy5ldXMwHhcNMjQx\n"
+"MTA1MTE0NzIxWhcNMjUxMTA1MTE0NzIxWjBVMQswCQYDVQQGEwJBVTETMBEGA1UE\n"
+"CAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRk\n"
+"MQ4wDAYDVQQDDAVFU1AzMjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\n"
+"AKzzxVqg3D+5jwCDRN+KNh5TB3GETaf6BpFVwQccHaw/G6w2mQ/8w9m7jV2i9WXX\n"
+"UsZDZRgAMM/JXLCL9kFO9+RIAYeB449bwc0rwQYueos9PZMqwcA/cUYUNwMfJRwJ\n"
+"hPRl86gyIiGhE1beFz4QnFPg444ZVlee7wDuKvDZJg66XbEztpliCIiKCaD49ifk\n"
+"urpdwB6smj3O54aoQgiiVG17GUw1UTlp1YFtOwRsMFezAWf0aePljA3tHlgFugUM\n"
+"iqycwPvqWe4ryCbdZDwk/UtMovu2wvl4MxKXwApZ3M3hoNJpqkQQw/jhTF4EebH5\n"
+"qym7RRyH0aG81Gv3ifAPHuUCAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAzsnDwPTh\n"
+"ZTYVyOm4g4yld0OL2IakcfnE0baV8LjGynnfJVT8jHRvU6n+GzmO09TsvkyJWxkR\n"
+"iVl+G/TJHvg5ZARyyTyCaMcXbpLt2uLV9cQwDv98Ji+faM123bHnBWK8F2zyYd8X\n"
+"dcL1UFlPrCQ96Kcp6H7/+FAda62AKfAzhoLXSPe3puW3M5bM9ey4wldSaVkgCiiQ\n"
+"5izC9BvA8FCUVTk8ePW/6adHwXLq36xnkav3CXUsnzwAABlFkBCecpw6eh8Wk1bQ\n"
+"i7UIJ3e22YqBVxiWfiY9BLd1PjsKObW4JFrM5hhO6QRKnTXo/tpsHg7yQp2rlG8n\n"
+"q+iXLCc+sadPO0b2+0WudtRnsmOWIFnDaKULsafzufqHEc5MGBUR/QQfMIf++Pm7\n"
+"WOiaLuRwBX5V69xMSJpUGVHU5QIaZuT6XVfc4SyUD+VV41T/ucZpvcb8zyM0WlA2\n"
+"mEJLf06yO5dOyvmsulEyQEdX2pXefwKZRtRUKnC+Mn1xAmg+4BvtHWEfZetEVSgm\n"
+"unhmaAxYz7UnwZfPDsAd1hdTQr86R19ojCZEmfq+H1C7wW2osIwdKW9FRysc3g+L\n"
+"hXz91e/ZADkgnCAXbej02O6hOaUhy5D0a4gBTqQPb9hNpu7bS+i4Z+JgyQ1ECtwb\n"
+"hje0vz27mOQAh20BR5xe4CZPNn+UVCs4HSs=\n"
+"-----END CERTIFICATE-----\n";
+
+const char* ca_crt =
+"-----BEGIN CERTIFICATE-----\n"
+"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\n"
+"-----END CERTIFICATE-----\n";
+
+
+////////////////////////////////////////////////////////////////////////
+
+//WiFiClient espClient;
+WiFiClientSecure espClient; //SSL      
 PubSubClient client(espClient);  
 
 #define BUZZER_PIN 12 
@@ -46,6 +146,7 @@ MFRC522::MIFARE_Key key;
 // Function definitions
 void setup_wifi();
 void setup_rfid();
+void setup_ssl();
 void beep(int times, int duration, int pause, int frequency);
 void mqtt_callback(char* topic, byte* payload, unsigned int length);
 void reconnect_mqtt();
@@ -65,13 +166,13 @@ void setup()
   Serial.begin(115200); 
   setup_wifi();  
   setup_rfid();
+  setup_ssl();
 
   pinMode(BUZZER_PIN, OUTPUT);      
   digitalWrite(BUZZER_PIN, LOW);   
 
   pinMode(LED_GREEN_PIN, OUTPUT);
   pinMode(LED_RED_PIN, OUTPUT);
-  // setup_ssl(); // Setup SSL Certificates (descomentarlo si usas SSL)
 
   client.setServer(mqtt_server, mqtt_port); 
   client.setCallback(mqtt_callback); 
@@ -86,6 +187,16 @@ void loop()
   client.loop(); 
 
   handleRFID();
+}
+
+// -------------------- --------//
+// -----   CERTIFICATES   ----- //
+// -----------------------------//
+
+void setup_ssl() {
+  espClient.setCACert(ca_crt);
+  espClient.setCertificate(device_crt);
+  espClient.setPrivateKey(device_key);
 }
 
 
@@ -460,94 +571,3 @@ String readFile(const char *path)
 }
 
 
-
-// const char* device_key =
-// "-----BEGIN PRIVATE KEY-----\n"
-// "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCs88VaoNw/uY8A\n"
-// "g0TfijYeUwdxhE2n+gaRVcEHHB2sPxusNpkP/MPZu41dovVl11LGQ2UYADDPyVyw\n"
-// "i/ZBTvfkSAGHgeOPW8HNK8EGLnqLPT2TKsHAP3FGFDcDHyUcCYT0ZfOoMiIhoRNW\n"
-// "3hc+EJxT4OOOGVZXnu8A7irw2SYOul2xM7aZYgiIigmg+PYn5Lq6XcAerJo9zueG\n"
-// "qEIIolRtexlMNVE5adWBbTsEbDBXswFn9Gnj5YwN7R5YBboFDIqsnMD76lnuK8gm\n"
-// "3WQ8JP1LTKL7tsL5eDMSl8AKWdzN4aDSaapEEMP44UxeBHmx+aspu0Uch9GhvNRr\n"
-// "94nwDx7lAgMBAAECggEAAIyFg9Qe3tTn70h7X3pA0bfRvjp9RJs2ih+LjUo5jeJl\n"
-// "ZBaIRdS3imld+X4a6UfVq2trVrgpb39kG+tVzL9DaiYQWy2+WyYfZ1dMNYjQOsDn\n"
-// "ASCRnNqWsXI++nOO2pftJBluvInsMc8hEJWD3V6QIHQGRN0vuPd4KriWykzmIgXU\n"
-// "DgGHduGoY0rNh9S0httZ8zAtKA5aAVL7K/2eCXZYF2ryTRT+dNAV3CXM0qmd0twP\n"
-// "XT1O9hwyQLCpBxdRResULzK6XdsqS7gnUT5vNe4va0wIp8bYWJtYy2oa7oyJn7Ti\n"
-// "qk8p1ZaHVyjMbYBERiDYeJiw86Zz7DhhHzO3iohaAQKBgQC7GZvKuky+iB+BfZC4\n"
-// "4DWNUiFURwk/s7f6t64mBPiMwdFUFMUNXe+48MfbJJ2B2I8TZhHHX8rZN/5BNPN5\n"
-// "a6cI5oofxQOylJ7audm9yYNFH64RdSVPWKSY9PBNk5nIGmyFfCjQUY1prvyL8ZyU\n"
-// "+8sGiZBKRgnH6L5MGlLyX+WVrQKBgQDspGnN09schlXTqoBqIHMbgyhOBI0f3JFk\n"
-// "OlA6r4B7p+yT82IQZx405MG365MBmlxFBfsAxSQZIR36+0MI7KfXli4+CLU8ajpr\n"
-// "tLRSTnPAMTc+EQd0TYMbo+5n0ATKjehXZ7Hnyq6EhMyk+lIEObo2iwuJL9ct0Tzh\n"
-// "cxJyVTelGQKBgEsAHfprKd5qtK50xjHF9tGara+Z9jQp98MyJEYrUfMisqXQ2Zjd\n"
-// "If5xzrui9tyZEemFzfStCqR+lJZRApSWudOQjqfjkvLgLrmhLI6um8d2xpFK81TW\n"
-// "RMznyvheBZQ4O25a8gVn25cUxTnX9ZunP6B0Pnn3j24qdzYMi1mLZX3VAoGBAL8n\n"
-// "NFxSVP1eujen0+FmYvUHZmhXHtRs7HkE7cfp+qRoih8dC8rqMSlS2/TAc1hpIz2S\n"
-// "TiZaGQW/jaMukgDEgfQQ2Tu89wFdYeGc78hInRHT76bQRLA66LxMGIl9LFGefd8U\n"
-// "4U22mHBtgY2Gsve81eG3QdNIdM4K5d3LgUwf8DoJAoGAKDpkajB8FrU73ORQJp2N\n"
-// "L4V+wInOxEeUaUbeXbyvJIOFBmgKkYeJD4Q4dxVmjipo96VUrhbDBIuZETgEWYN/\n"
-// "7KVvtU/vIdgg8fUzS3hOX5ssnNhae2ebzDRj9SlnnKvXSqRaY/X2qcwMpP2iCY8p\n"
-// "6R55mOZEF9WthcMMIQr/gj4=\n"
-// "-----END PRIVATE KEY-----\n";
-
-// const char* device_crt =
-// "-----BEGIN CERTIFICATE-----\n"
-// "MIIENTCCAh0CFDdhMVl0XlHJot8yKR3G+iWeWdX3MA0GCSqGSIb3DQEBCwUAMFkx\n"
-// "CzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRl\n"
-// "cm5ldCBXaWRnaXRzIFB0eSBMdGQxEjAQBgNVBAMMCWthb3Rpa2FDQTAeFw0yNDEw\n"
-// "MjMwNzE4NTFaFw0yNTEwMjMwNzE4NTFaMFUxCzAJBgNVBAYTAkFVMRMwEQYDVQQI\n"
-// "DApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQx\n"
-// "DjAMBgNVBAMMBUVTUDMyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\n"
-// "rPPFWqDcP7mPAINE34o2HlMHcYRNp/oGkVXBBxwdrD8brDaZD/zD2buNXaL1ZddS\n"
-// "xkNlGAAwz8lcsIv2QU735EgBh4Hjj1vBzSvBBi56iz09kyrBwD9xRhQ3Ax8lHAmE\n"
-// "9GXzqDIiIaETVt4XPhCcU+DjjhlWV57vAO4q8NkmDrpdsTO2mWIIiIoJoPj2J+S6\n"
-// "ul3AHqyaPc7nhqhCCKJUbXsZTDVROWnVgW07BGwwV7MBZ/Rp4+WMDe0eWAW6BQyK\n"
-// "rJzA++pZ7ivIJt1kPCT9S0yi+7bC+XgzEpfAClnczeGg0mmqRBDD+OFMXgR5sfmr\n"
-// "KbtFHIfRobzUa/eJ8A8e5QIDAQABMA0GCSqGSIb3DQEBCwUAA4ICAQAojPgpDnuN\n"
-// "oILb25nJRmd0Vw/UrzKQwxpe5wK7TwcfQF3SpANq9prEJIpcfNfvJjmWfCiyDPp5\n"
-// "LH89duxJKdHeBDQAFiyYOiMTms19AqM2ArzxOBorOIxZSKa03ask35JwdkX95Z7i\n"
-// "OVWJ5KJoMGZtbHhOqHt6U8qJU/wyf9iJMoK3NkBzvYxf6bNEvHS52ta0C+p5y1l9\n"
-// "5zZT1zYeKIZ0YVGzpnlyvZ87JHn20qH7o7+WBXE9oyIrF755DvAvlCHkgAfTsHeu\n"
-// "lAVIrkME7QG+aUUpVyJPjMWk6DOQgGbvD7h2Ao/s9lqzU8kp6nlA9Jx+pUtDDqgP\n"
-// "Oc0OVhzoHR4M0q7vGDvmpedRG33vNxfln4WRDbt0jBbx4IZ7V3CAWkEkZkwgZB2u\n"
-// "rw56OIjEOu+Z/Lw8fDSM05v3Jn4fLXcZ/oqqDMinz4fkcDq8Z1F0PsgJ3pd4ThXv\n"
-// "+/lizWZUg0eDXbW2AfGUctB/9/bH5ZSa+BgowIXRTWbdm7AKtILp+kdItwvXY8Zo\n"
-// "hruFbizb4nBzaOLq3j3vFO9nEGFXXET4IkbkEFq6cFVLSg5HNAKzJRybSOXYr1jM\n"
-// "wLNsHp5zLwUxaEmJpHJPntQXU3qb4GxnmElc3ItAHAmB5IfBp/h7TQxF82BWIa4W\n"
-// "hw0LJLkBm3InB6A32AwluvkMv7VNEJW1RA==\n"
-// "-----END CERTIFICATE-----\n";
-
-// const char* ca_crt =
-// "-----BEGIN CERTIFICATE-----\n"
-// "MIIFkzCCA3ugAwIBAgIUFCJbSK7PfavnPaUB/VzUDKbf2FEwDQYJKoZIhvcNAQEL\n"
-// "BQAwWTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM\n"
-// "GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDESMBAGA1UEAwwJa2FvdGlrYUNBMB4X\n"
-// "DTI0MTAyMzA2NTg0MFoXDTM0MTAyMTA2NTg0MFowWTELMAkGA1UEBhMCQVUxEzAR\n"
-// "BgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5\n"
-// "IEx0ZDESMBAGA1UEAwwJa2FvdGlrYUNBMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A\n"
-// "MIICCgKCAgEAmXoikRl3ifIhmFNff3L/UI/hcXVt4bGokaReUa3azltIcKer4BP2\n"
-// "2QS4d7qslHlDaqDkXJXAIlaVfr/E0MnodZtFDzTNaKnoEakJbgUshTORLxvfxeW7\n"
-// "fp+LvE5HL40jUyO8SihKkFCxKjGFZf0ahatAF6Tk/te5gBxW5TpX2MA7q3suymRB\n"
-// "ZaurbvRDgQVl+ZErOQZ5zBaYIlpSdsUdtULSe27kEG1lF1Ws+w+E4TPFfcoGZ6Zs\n"
-// "bQUL8hre+h2KE9/gSmC+6x00vAhj6+UHRELAsp4UdkxrUJQ570EFWVFJfedAgV4L\n"
-// "L4A1CbOxeV4+M5A4gMErALyWzyA+SR2GH6U3HX4z48kPSFI42LGwtQhvs11VW31y\n"
-// "tpgV9ylqOK2INYB8YqcmReY/Q6eUu1OtH7vMs1CFCgw5ZkZW8E0tyYuoocg5XerI\n"
-// "N1ZGAq09i7JesVmZOpVAfdWPoUmH5uIdEfWDzgCkEoO+HMn15QWhibcdZz8XdQvt\n"
-// "+bh5A8V7huKnyqeMO2Z97rCkG90lic/lu9PpHSD23dBsRk0H3J9OIyLzG+VJ128K\n"
-// "0KpUa/u76OsMxe/dbXBesU3IC+20MhX3V75fjskeCdsMWY/oG/vzjIJ+DKL+dk6E\n"
-// "wFmQZgrEKRlf1yf7Ezb75mY7kQnvsmwkZxd9fZhm02kov9Pm2oM2IesCAwEAAaNT\n"
-// "MFEwHQYDVR0OBBYEFL1bxIppTpNwyubX8CQ8trN2NHQAMB8GA1UdIwQYMBaAFL1b\n"
-// "xIppTpNwyubX8CQ8trN2NHQAMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQEL\n"
-// "BQADggIBAF0bTXedB3r5h/y4YgcYb0n6kp0gCCMcKjyro2MfZx7jzyC3FCyTjcUT\n"
-// "OzQka/SnP9j+8sHQJ6xubWzl8BarSGibeVjCbT0KoTM9KmnIEKFG2DS5RmnyXLSQ\n"
-// "A6dTPA21JZutu2gnT7+sii/8pMngCwRIoUZDpNIOBACi93lw0ntR5D9kwocQM4pv\n"
-// "FC8LOcXU8rUMkd17A10w5R9G0X6D3OCRmZT3P0UmdLY+D3CfSmPTKXH5I/VAEtdT\n"
-// "vnzlAXLJLMxZDPGyOawzBOn8K0tudHZvjp/d/9zTeIqhjaeRK8wCFLE+bynk5JRP\n"
-// "aB4OX+WzGpKWIXBHP9yDjfPLQLr0MErVuShlpfLxqeNLU6B4j0nOTGKG1zFdz2uA\n"
-// "RbdoQ8zNe4/pJItBBua2YP4dBimjGMwYI5nadFf2t02nKx6328PUFnPB43TlXvOX\n"
-// "69uWvP3K6Uwf85gUA4hIwuzD7BJcl3xPgd7gn9U/YH0umxAjxxYshMYZ44mc755c\n"
-// "Um3hCC9z7c+ugXDC6Bn0BM8IBGq4GEfMV6zEz7esfrR1KN50nXh9KXRr9RbZj6cA\n"
-// "mJuNefa1SCQqXa09lxqiTv7W9BjSvsYF/MEynwlCd6oUc/0NF8PqHYflWBk2Zrpa\n"
-// "+5x2z42LNTTGPJYhECtsm5U0gFm3zubA+n/JFb3h8CMSlPj8K6MB\n"
-// "-----END CERTIFICATE-----\n";
