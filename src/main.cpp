@@ -272,6 +272,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
         beep(2, 100, 100, 800); 
         delay(1500);
         stopNotInScreen();
+         isPending = false;
       }else {
         Serial.println("Action error.");
         isPending = false;
@@ -279,6 +280,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
         beep(2, 100, 100, 800); 
         delay(1500);
         stopError();
+         isPending = false;
         return; 
       }
 
