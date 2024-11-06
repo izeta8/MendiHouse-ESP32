@@ -213,7 +213,7 @@ void reconnect_mqtt()
     if (client.connect("ESP32_MendiHouse"))
     {
       Serial.println("connected");
-      client.subscribe("doorAction");
+      client.subscribe("MendiHouse/doorAction");
     }
     else
     {
@@ -235,7 +235,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("]: ");
   Serial.println(messageBuffer);
 
-  if (String(topic) == "doorAction") {
+  if (String(topic) == "MendiHouse/doorAction") {
     StaticJsonDocument<200> doc;
 
     DeserializationError error = deserializeJson(doc, messageBuffer);
@@ -284,11 +284,11 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       serializeJson(docStatus, output);
 
       // Publish the JSON to doorStatus
-      bool publishSuccess = client.publish("doorStatus", output.c_str());
+      bool publishSuccess = client.publish("MendiHouse/doorStatus", output.c_str());
       if (publishSuccess) {
-        Serial.println(F("Door status successfully published to MQTT topic 'doorStatus'."));
+        Serial.println(F("Door status successfully published to MQTT topic 'MendiHouse/doorStatus'."));
       } else {
-        Serial.println(F("Failed to publish door status to MQTT topic 'doorStatus'."));
+        Serial.println(F("Failed to publish door status to MQTT topic 'MendiHouse/doorStatus'."));
       }
     } else {
       Serial.println("Fields 'action' or 'token' are missing in the JSON.");
@@ -423,8 +423,8 @@ void handleRFID(){
     Serial.println(nuidHex);
       
 
-    client.publish("cardId", nuidHex.c_str());
-    Serial.println(F("NUID published to MQTT topic 'cardId'."));
+    client.publish("MendiHouse/cardId", nuidHex.c_str());
+    Serial.println(F("NUID published to MQTT topic 'MendiHouse/cardId'."));
   
     // Detener la comunicación con la tarjeta
     rfid.PICC_HaltA();
