@@ -23,103 +23,101 @@
   const int mqtt_port = 8883; //8883 with SSL               
   const char *mqtt_server = "10.80.128.2"; 
 
-  ///////////////////////////////////////////////////////////////////////
-  const char* device_key =
-  "-----BEGIN PRIVATE KEY-----\n"
-  "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCs88VaoNw/uY8A\n"
-  "g0TfijYeUwdxhE2n+gaRVcEHHB2sPxusNpkP/MPZu41dovVl11LGQ2UYADDPyVyw\n"
-  "i/ZBTvfkSAGHgeOPW8HNK8EGLnqLPT2TKsHAP3FGFDcDHyUcCYT0ZfOoMiIhoRNW\n"
-  "3hc+EJxT4OOOGVZXnu8A7irw2SYOul2xM7aZYgiIigmg+PYn5Lq6XcAerJo9zueG\n"
-  "qEIIolRtexlMNVE5adWBbTsEbDBXswFn9Gnj5YwN7R5YBboFDIqsnMD76lnuK8gm\n"
-  "3WQ8JP1LTKL7tsL5eDMSl8AKWdzN4aDSaapEEMP44UxeBHmx+aspu0Uch9GhvNRr\n"
-  "94nwDx7lAgMBAAECggEAAIyFg9Qe3tTn70h7X3pA0bfRvjp9RJs2ih+LjUo5jeJl\n"
-  "ZBaIRdS3imld+X4a6UfVq2trVrgpb39kG+tVzL9DaiYQWy2+WyYfZ1dMNYjQOsDn\n"
-  "ASCRnNqWsXI++nOO2pftJBluvInsMc8hEJWD3V6QIHQGRN0vuPd4KriWykzmIgXU\n"
-  "DgGHduGoY0rNh9S0httZ8zAtKA5aAVL7K/2eCXZYF2ryTRT+dNAV3CXM0qmd0twP\n"
-  "XT1O9hwyQLCpBxdRResULzK6XdsqS7gnUT5vNe4va0wIp8bYWJtYy2oa7oyJn7Ti\n"
-  "qk8p1ZaHVyjMbYBERiDYeJiw86Zz7DhhHzO3iohaAQKBgQC7GZvKuky+iB+BfZC4\n"
-  "4DWNUiFURwk/s7f6t64mBPiMwdFUFMUNXe+48MfbJJ2B2I8TZhHHX8rZN/5BNPN5\n"
-  "a6cI5oofxQOylJ7audm9yYNFH64RdSVPWKSY9PBNk5nIGmyFfCjQUY1prvyL8ZyU\n"
-  "+8sGiZBKRgnH6L5MGlLyX+WVrQKBgQDspGnN09schlXTqoBqIHMbgyhOBI0f3JFk\n"
-  "OlA6r4B7p+yT82IQZx405MG365MBmlxFBfsAxSQZIR36+0MI7KfXli4+CLU8ajpr\n"
-  "tLRSTnPAMTc+EQd0TYMbo+5n0ATKjehXZ7Hnyq6EhMyk+lIEObo2iwuJL9ct0Tzh\n"
-  "cxJyVTelGQKBgEsAHfprKd5qtK50xjHF9tGara+Z9jQp98MyJEYrUfMisqXQ2Zjd\n"
-  "If5xzrui9tyZEemFzfStCqR+lJZRApSWudOQjqfjkvLgLrmhLI6um8d2xpFK81TW\n"
-  "RMznyvheBZQ4O25a8gVn25cUxTnX9ZunP6B0Pnn3j24qdzYMi1mLZX3VAoGBAL8n\n"
-  "NFxSVP1eujen0+FmYvUHZmhXHtRs7HkE7cfp+qRoih8dC8rqMSlS2/TAc1hpIz2S\n"
-  "TiZaGQW/jaMukgDEgfQQ2Tu89wFdYeGc78hInRHT76bQRLA66LxMGIl9LFGefd8U\n"
-  "4U22mHBtgY2Gsve81eG3QdNIdM4K5d3LgUwf8DoJAoGAKDpkajB8FrU73ORQJp2N\n"
-  "L4V+wInOxEeUaUbeXbyvJIOFBmgKkYeJD4Q4dxVmjipo96VUrhbDBIuZETgEWYN/\n"
-  "7KVvtU/vIdgg8fUzS3hOX5ssnNhae2ebzDRj9SlnnKvXSqRaY/X2qcwMpP2iCY8p\n"
-  "6R55mOZEF9WthcMMIQr/gj4=\n"
-  "-----END PRIVATE KEY-----\n";
+/////////////////////////////////////////////////////////////////////
+const char* device_key = \
+"-----BEGIN PRIVATE KEY-----\n" \
+"MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCs88VaoNw/uY8A\n" \
+"g0TfijYeUwdxhE2n+gaRVcEHHB2sPxusNpkP/MPZu41dovVl11LGQ2UYADDPyVyw\n" \
+"i/ZBTvfkSAGHgeOPW8HNK8EGLnqLPT2TKsHAP3FGFDcDHyUcCYT0ZfOoMiIhoRNW\n" \
+"3hc+EJxT4OOOGVZXnu8A7irw2SYOul2xM7aZYgiIigmg+PYn5Lq6XcAerJo9zueG\n" \
+"qEIIolRtexlMNVE5adWBbTsEbDBXswFn9Gnj5YwN7R5YBboFDIqsnMD76lnuK8gm\n" \
+"3WQ8JP1LTKL7tsL5eDMSl8AKWdzN4aDSaapEEMP44UxeBHmx+aspu0Uch9GhvNRr\n" \
+"94nwDx7lAgMBAAECggEAAIyFg9Qe3tTn70h7X3pA0bfRvjp9RJs2ih+LjUo5jeJl\n" \
+"ZBaIRdS3imld+X4a6UfVq2trVrgpb39kG+tVzL9DaiYQWy2+WyYfZ1dMNYjQOsDn\n" \
+"ASCRnNqWsXI++nOO2pftJBluvInsMc8hEJWD3V6QIHQGRN0vuPd4KriWykzmIgXU\n" \
+"DgGHduGoY0rNh9S0httZ8zAtKA5aAVL7K/2eCXZYF2ryTRT+dNAV3CXM0qmd0twP\n" \
+"XT1O9hwyQLCpBxdRResULzK6XdsqS7gnUT5vNe4va0wIp8bYWJtYy2oa7oyJn7Ti\n" \
+"qk8p1ZaHVyjMbYBERiDYeJiw86Zz7DhhHzO3iohaAQKBgQC7GZvKuky+iB+BfZC4\n" \
+"4DWNUiFURwk/s7f6t64mBPiMwdFUFMUNXe+48MfbJJ2B2I8TZhHHX8rZN/5BNPN5\n" \
+"a6cI5oofxQOylJ7audm9yYNFH64RdSVPWKSY9PBNk5nIGmyFfCjQUY1prvyL8ZyU\n" \
+"+8sGiZBKRgnH6L5MGlLyX+WVrQKBgQDspGnN09schlXTqoBqIHMbgyhOBI0f3JFk\n" \
+"OlA6r4B7p+yT82IQZx405MG365MBmlxFBfsAxSQZIR36+0MI7KfXli4+CLU8ajpr\n" \
+"tLRSTnPAMTc+EQd0TYMbo+5n0ATKjehXZ7Hnyq6EhMyk+lIEObo2iwuJL9ct0Tzh\n" \
+"cxJyVTelGQKBgEsAHfprKd5qtK50xjHF9tGara+Z9jQp98MyJEYrUfMisqXQ2Zjd\n" \
+"If5xzrui9tyZEemFzfStCqR+lJZRApSWudOQjqfjkvLgLrmhLI6um8d2xpFK81TW\n" \
+"RMznyvheBZQ4O25a8gVn25cUxTnX9ZunP6B0Pnn3j24qdzYMi1mLZX3VAoGBAL8n\n" \
+"NFxSVP1eujen0+FmYvUHZmhXHtRs7HkE7cfp+qRoih8dC8rqMSlS2/TAc1hpIz2S\n" \
+"TiZaGQW/jaMukgDEgfQQ2Tu89wFdYeGc78hInRHT76bQRLA66LxMGIl9LFGefd8U\n" \
+"4U22mHBtgY2Gsve81eG3QdNIdM4K5d3LgUwf8DoJAoGAKDpkajB8FrU73ORQJp2N\n" \
+"L4V+wInOxEeUaUbeXbyvJIOFBmgKkYeJD4Q4dxVmjipo96VUrhbDBIuZETgEWYN/\n" \
+"7KVvtU/vIdgg8fUzS3hOX5ssnNhae2ebzDRj9SlnnKvXSqRaY/X2qcwMpP2iCY8p\n" \
+"6R55mOZEF9WthcMMIQr/gj4=\n" \
+"-----END PRIVATE KEY-----\n";
 
-  const char* device_crt =
-  "-----BEGIN CERTIFICATE-----\n"
-  "MIIEZjCCAk4CFDFJOJOeCY/3NWwPFe28nvzIOCBAMA0GCSqGSIb3DQEBCwUAMIGJ\n"
-  "MQswCQYDVQQGEwJFVTERMA8GA1UECAwIR0lQVVpLT0ExETAPBgNVBAcMCERPTk9T\n"
-  "VElBMQwwCgYDVQQKDANBRUcxEDAOBgNVBAsMB0tBT1RJS0ExEDAOBgNVBAMMB0tB\n"
-  "T1RJS0ExIjAgBgkqhkiG9w0BCQEWE29za2FyLmNhbHZvQGFlZy5ldXMwHhcNMjQx\n"
-  "MTA1MTE0NzIxWhcNMjUxMTA1MTE0NzIxWjBVMQswCQYDVQQGEwJBVTETMBEGA1UE\n"
-  "CAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRk\n"
-  "MQ4wDAYDVQQDDAVFU1AzMjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\n"
-  "AKzzxVqg3D+5jwCDRN+KNh5TB3GETaf6BpFVwQccHaw/G6w2mQ/8w9m7jV2i9WXX\n"
-  "UsZDZRgAMM/JXLCL9kFO9+RIAYeB449bwc0rwQYueos9PZMqwcA/cUYUNwMfJRwJ\n"
-  "hPRl86gyIiGhE1beFz4QnFPg444ZVlee7wDuKvDZJg66XbEztpliCIiKCaD49ifk\n"
-  "urpdwB6smj3O54aoQgiiVG17GUw1UTlp1YFtOwRsMFezAWf0aePljA3tHlgFugUM\n"
-  "iqycwPvqWe4ryCbdZDwk/UtMovu2wvl4MxKXwApZ3M3hoNJpqkQQw/jhTF4EebH5\n"
-  "qym7RRyH0aG81Gv3ifAPHuUCAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAzsnDwPTh\n"
-  "ZTYVyOm4g4yld0OL2IakcfnE0baV8LjGynnfJVT8jHRvU6n+GzmO09TsvkyJWxkR\n"
-  "iVl+G/TJHvg5ZARyyTyCaMcXbpLt2uLV9cQwDv98Ji+faM123bHnBWK8F2zyYd8X\n"
-  "dcL1UFlPrCQ96Kcp6H7/+FAda62AKfAzhoLXSPe3puW3M5bM9ey4wldSaVkgCiiQ\n"
-  "5izC9BvA8FCUVTk8ePW/6adHwXLq36xnkav3CXUsnzwAABlFkBCecpw6eh8Wk1bQ\n"
-  "i7UIJ3e22YqBVxiWfiY9BLd1PjsKObW4JFrM5hhO6QRKnTXo/tpsHg7yQp2rlG8n\n"
-  "q+iXLCc+sadPO0b2+0WudtRnsmOWIFnDaKULsafzufqHEc5MGBUR/QQfMIf++Pm7\n"
-  "WOiaLuRwBX5V69xMSJpUGVHU5QIaZuT6XVfc4SyUD+VV41T/ucZpvcb8zyM0WlA2\n"
-  "mEJLf06yO5dOyvmsulEyQEdX2pXefwKZRtRUKnC+Mn1xAmg+4BvtHWEfZetEVSgm\n"
-  "unhmaAxYz7UnwZfPDsAd1hdTQr86R19ojCZEmfq+H1C7wW2osIwdKW9FRysc3g+L\n"
-  "hXz91e/ZADkgnCAXbej02O6hOaUhy5D0a4gBTqQPb9hNpu7bS+i4Z+JgyQ1ECtwb\n"
-  "hje0vz27mOQAh20BR5xe4CZPNn+UVCs4HSs=\n"
-  "-----END CERTIFICATE-----\n";
+const char* device_crt = \
+"-----BEGIN CERTIFICATE-----\n" \
+"MIIEZjCCAk4CFDFJOJOeCY/3NWwPFe28nvzIOCBAMA0GCSqGSIb3DQEBCwUAMIGJ\n" \
+"MQswCQYDVQQGEwJFVTERMA8GA1UECAwIR0lQVVpLT0ExETAPBgNVBAcMCERPTk9T\n" \
+"VElBMQwwCgYDVQQKDANBRUcxEDAOBgNVBAsMB0tBT1RJS0ExEDAOBgNVBAMMB0tB\n" \
+"T1RJS0ExIjAgBgkqhkiG9w0BCQEWE29za2FyLmNhbHZvQGFlZy5ldXMwHhcNMjQx\n" \
+"MTA1MTE0NzIxWhcNMjUxMTA1MTE0NzIxWjBVMQswCQYDVQQGEwJBVTETMBEGA1UE\n" \
+"CAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRk\n" \
+"MQ4wDAYDVQQDDAVFU1AzMjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\n" \
+"AKzzxVqg3D+5jwCDRN+KNh5TB3GETaf6BpFVwQccHaw/G6w2mQ/8w9m7jV2i9WXX\n" \
+"UsZDZRgAMM/JXLCL9kFO9+RIAYeB449bwc0rwQYueos9PZMqwcA/cUYUNwMfJRwJ\n" \
+"hPRl86gyIiGhE1beFz4QnFPg444ZVlee7wDuKvDZJg66XbEztpliCIiKCaD49ifk\n" \
+"urpdwB6smj3O54aoQgiiVG17GUw1UTlp1YFtOwRsMFezAWf0aePljA3tHlgFugUM\n" \
+"iqycwPvqWe4ryCbdZDwk/UtMovu2wvl4MxKXwApZ3M3hoNJpqkQQw/jhTF4EebH5\n" \
+"qym7RRyH0aG81Gv3ifAPHuUCAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAzsnDwPTh\n" \
+"ZTYVyOm4g4yld0OL2IakcfnE0baV8LjGynnfJVT8jHRvU6n+GzmO09TsvkyJWxkR\n" \
+"iVl+G/TJHvg5ZARyyTyCaMcXbpLt2uLV9cQwDv98Ji+faM123bHnBWK8F2zyYd8X\n" \
+"dcL1UFlPrCQ96Kcp6H7/+FAda62AKfAzhoLXSPe3puW3M5bM9ey4wldSaVkgCiiQ\n" \
+"5izC9BvA8FCUVTk8ePW/6adHwXLq36xnkav3CXUsnzwAABlFkBCecpw6eh8Wk1bQ\n" \
+"i7UIJ3e22YqBVxiWfiY9BLd1PjsKObW4JFrM5hhO6QRKnTXo/tpsHg7yQp2rlG8n\n" \
+"q+iXLCc+sadPO0b2+0WudtRnsmOWIFnDaKULsafzufqHEc5MGBUR/QQfMIf++Pm7\n" \
+"WOiaLuRwBX5V69xMSJpUGVHU5QIaZuT6XVfc4SyUD+VV41T/ucZpvcb8zyM0WlA2\n" \
+"mEJLf06yO5dOyvmsulEyQEdX2pXefwKZRtRUKnC+Mn1xAmg+4BvtHWEfZetEVSgm\n" \
+"unhmaAxYz7UnwZfPDsAd1hdTQr86R19ojCZEmfq+H1C7wW2osIwdKW9FRysc3g+L\n" \
+"hXz91e/ZADkgnCAXbej02O6hOaUhy5D0a4gBTqQPb9hNpu7bS+i4Z+JgyQ1ECtwb\n" \
+"hje0vz27mOQAh20BR5xe4CZPNn+UVCs4HSs=\n" \
+"-----END CERTIFICATE-----\n";
 
-  const char* ca_crt =
-  "-----BEGIN CERTIFICATE-----\n"
-  "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\n"
-   "-----END CERTIFICATE-----\n";
+const char* ca_crt = \
+"-----BEGIN CERTIFICATE-----\n" \
+"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\n" \
+"-----END CERTIFICATE-----\n";
 
-
-  ////////////////////////////////////////////////////////////////////////
 
   //WiFiClient espClient;
   WiFiClientSecure espClient; //SSL      
@@ -167,6 +165,12 @@
   void setup()
   {
     Serial.begin(115200); 
+    myServo.attach(SERVO_PIN, 554, 2400);
+    myServo.write(90);
+    delay(1000);
+    openDoor();
+    delay(1000);
+    closeDoor();
     setup_wifi();  
     setup_rfid();
     setup_ssl();
@@ -184,6 +188,7 @@
 
   void loop()
   {
+   
     if (!client.connected())
     {
       reconnect_mqtt(); 
@@ -455,9 +460,11 @@
     myServo.attach(SERVO_PIN, 554, 2400);
     Serial.println("Door closing...");
     // Giro de 90 a 0º. CERRAR PUERTA
-    for (int i = 90; i >= 0; i--) {
+      for (int i = 0; i <= 90; i++) {
       myServo.write(i);
+
       doorAngle = i;
+
       delay(20);
     }
     Serial.println("Door closed");
@@ -469,11 +476,10 @@
     Serial.println("Door opening...");
     myServo.attach(SERVO_PIN, 554, 2400);
     // Giro de 0 a 90º. ABRIR PUERTA
-    for (int i = 0; i <= 90; i++) {
+  
+    for (int i = 90; i >= 0; i--) {
       myServo.write(i);
-
       doorAngle = i;
-
       delay(20);
     }
     Serial.println("Door opened");
