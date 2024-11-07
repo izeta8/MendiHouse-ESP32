@@ -1,5 +1,4 @@
   #include <Arduino.h>
-  #include <WiFi.h>
   #include <WiFiClientSecure.h>
   #include <SPI.h>
   #include <MFRC522.h>
@@ -7,6 +6,7 @@
   #include <ArduinoJson.h>
   #include <ESP32Servo.h>
   #include <SPIFFS.h>
+  #include "esp_wifi.h"
 
   #define SS_PIN 21   // GPIO 21
   #define RST_PIN 22  // GPIO 22
@@ -26,60 +26,60 @@
 /////////////////////////////////////////////////////////////////////
 const char* device_key = \
 "-----BEGIN PRIVATE KEY-----\n" \
-"MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCs88VaoNw/uY8A\n" \
-"g0TfijYeUwdxhE2n+gaRVcEHHB2sPxusNpkP/MPZu41dovVl11LGQ2UYADDPyVyw\n" \
-"i/ZBTvfkSAGHgeOPW8HNK8EGLnqLPT2TKsHAP3FGFDcDHyUcCYT0ZfOoMiIhoRNW\n" \
-"3hc+EJxT4OOOGVZXnu8A7irw2SYOul2xM7aZYgiIigmg+PYn5Lq6XcAerJo9zueG\n" \
-"qEIIolRtexlMNVE5adWBbTsEbDBXswFn9Gnj5YwN7R5YBboFDIqsnMD76lnuK8gm\n" \
-"3WQ8JP1LTKL7tsL5eDMSl8AKWdzN4aDSaapEEMP44UxeBHmx+aspu0Uch9GhvNRr\n" \
-"94nwDx7lAgMBAAECggEAAIyFg9Qe3tTn70h7X3pA0bfRvjp9RJs2ih+LjUo5jeJl\n" \
-"ZBaIRdS3imld+X4a6UfVq2trVrgpb39kG+tVzL9DaiYQWy2+WyYfZ1dMNYjQOsDn\n" \
-"ASCRnNqWsXI++nOO2pftJBluvInsMc8hEJWD3V6QIHQGRN0vuPd4KriWykzmIgXU\n" \
-"DgGHduGoY0rNh9S0httZ8zAtKA5aAVL7K/2eCXZYF2ryTRT+dNAV3CXM0qmd0twP\n" \
-"XT1O9hwyQLCpBxdRResULzK6XdsqS7gnUT5vNe4va0wIp8bYWJtYy2oa7oyJn7Ti\n" \
-"qk8p1ZaHVyjMbYBERiDYeJiw86Zz7DhhHzO3iohaAQKBgQC7GZvKuky+iB+BfZC4\n" \
-"4DWNUiFURwk/s7f6t64mBPiMwdFUFMUNXe+48MfbJJ2B2I8TZhHHX8rZN/5BNPN5\n" \
-"a6cI5oofxQOylJ7audm9yYNFH64RdSVPWKSY9PBNk5nIGmyFfCjQUY1prvyL8ZyU\n" \
-"+8sGiZBKRgnH6L5MGlLyX+WVrQKBgQDspGnN09schlXTqoBqIHMbgyhOBI0f3JFk\n" \
-"OlA6r4B7p+yT82IQZx405MG365MBmlxFBfsAxSQZIR36+0MI7KfXli4+CLU8ajpr\n" \
-"tLRSTnPAMTc+EQd0TYMbo+5n0ATKjehXZ7Hnyq6EhMyk+lIEObo2iwuJL9ct0Tzh\n" \
-"cxJyVTelGQKBgEsAHfprKd5qtK50xjHF9tGara+Z9jQp98MyJEYrUfMisqXQ2Zjd\n" \
-"If5xzrui9tyZEemFzfStCqR+lJZRApSWudOQjqfjkvLgLrmhLI6um8d2xpFK81TW\n" \
-"RMznyvheBZQ4O25a8gVn25cUxTnX9ZunP6B0Pnn3j24qdzYMi1mLZX3VAoGBAL8n\n" \
-"NFxSVP1eujen0+FmYvUHZmhXHtRs7HkE7cfp+qRoih8dC8rqMSlS2/TAc1hpIz2S\n" \
-"TiZaGQW/jaMukgDEgfQQ2Tu89wFdYeGc78hInRHT76bQRLA66LxMGIl9LFGefd8U\n" \
-"4U22mHBtgY2Gsve81eG3QdNIdM4K5d3LgUwf8DoJAoGAKDpkajB8FrU73ORQJp2N\n" \
-"L4V+wInOxEeUaUbeXbyvJIOFBmgKkYeJD4Q4dxVmjipo96VUrhbDBIuZETgEWYN/\n" \
-"7KVvtU/vIdgg8fUzS3hOX5ssnNhae2ebzDRj9SlnnKvXSqRaY/X2qcwMpP2iCY8p\n" \
-"6R55mOZEF9WthcMMIQr/gj4=\n" \
+"MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCvBE/hFM6RKZ0C\n" \
+"DA7Ere84k55sPLRwMBEL6C4lh6nE1OBTSZ7pc+jfW9JFKqH8ajcAWFKVd9v3Nr9L\n" \
+"1amLzGFLq18jXAb9id0s4VJeSjBc2YBZv95Flx+dk4cgTU5+X/+pbCCzx+ZnWmE/\n" \
+"qyRCVxDpWS3kor7tgO9uU0OVR/+5osAZsYWT7Xt6YPwxjLJ7hq8s9H9Mz4eCcD1Y\n" \
+"5jKRZzVK4WTmc8mBl5jViKwW9Y2jv4UW6fiBfPRkg3QBDqEoB/waWd26YfrFIgGf\n" \
+"BGcMupg6XtfU3CTZ/HdFmeaQ2M2NNJhAka714+VzvS4VwOVh7pSidOspGodfeh5/\n" \
+"RBmVGn8NAgMBAAECggEABJOpH8U4BlgfaNN2Or15BofnD4SM4Wwts0aDQmxS9mNC\n" \
+"FIYrLNwLncpcbCj1FdE/QU04p6ZRRHHpkcBIz++XJxqYVn03Gj/rM/EWgtcPfwtv\n" \
+"DanJ/xQ4eZnx4YM0B3Os5LoqUW6WVLiVLMw7Gq2v3bJSfr/6HI2Pyq5MaPsk3Fld\n" \
+"P3/q76+3w6dG438iBoI8IMIDyfyy0vuCgBgeSRurIABDD/ftVfgkm6gDRgSNzNGB\n" \
+"izbMR7DHDsbaA/PUVWzgUVn12kwdZ4xkp7Xd7nHs8Qx17pu+Dxgeffq/6Rhf01K7\n" \
+"MqNfhMMCdby2v6zcR/NrJxK5/HdrsHpflLOSGYSoAQKBgQC/KcC3GO85pzdIBgWI\n" \
+"kICPLSUVd2q8txH4yQA9/vCUFIs6JBig1HOuyjCMO2UmOJWlpXUQyGbtKf+2DMXC\n" \
+"X0pPmGf9jugbeK1hWTAQtfRfzSxBKxJGdFYFZRWQyv4Q4TN21qOn9pNIPrIiUtZv\n" \
+"jim15BvnGCKrHCuemUxeGRt8AQKBgQDqYJ4dCPLv42N62D/cH50x8zEYn9IPxw+s\n" \
+"6IiECSWcKHY5EIeG5W6dLBavTP0ZkI+ERJ5hwyKc93W1BWk3bHjNNgv8Q2Frb4nh\n" \
+"m52rqK1EZ7XXG3XFk2gE3raXK+h9u0ghFbKnNFAoYsAJvI0b27sLuxq+VIYD3KDe\n" \
+"sGUaWQEzDQKBgQCzWAuqe+UsNLoDg0q7tb43FUaeXhuwkxx0SLdGcqDofGGmmWjV\n" \
+"spwZly120t5xvlJ/RryOk0UlKerytAbw9Y91H2ook2MlKtGW7CLQ+rQbERV8yljp\n" \
+"6oktpIlX/2nfEjjDPFnr4cSJ2fArjYYKwNhXAnw/EgCsgdBWikIAYhPMAQKBgQCP\n" \
+"CT/1gEyi0icYBXmToUeSAFTqLj9ImbebUp5d1ic50ge0c74COWr0SL/fZCDixTKR\n" \
+"Cj+OckRhfzQ6sX6w8GYY9u8BmS2PH5cKNKpY5Kw5nwF+saeCWJ+WuUS9pXJRqUYv\n" \
+"ysoo+OgifYGtb4C+i67vTdTYa0UOfks/HG/XUJJG0QKBgQC1TGBff5q6JnrEQ0Mp\n" \
+"Fi9k/BGLqjtGja3xunZkqkuvmliUUA+PlRSH9UbCMwMuO+8uceS7hmY7y3PPY2Ag\n" \
+"S8JFkMXGAsAFxU3vwxSfCmvQhkX1Y/eyDhPJaPyskPkKzDBQo1MYBmm2rDnLahyo\n" \
+"+JQrFW7wx70BrP5kqcJE2Dixsw==\n" \
 "-----END PRIVATE KEY-----\n";
 
 const char* device_crt = \
 "-----BEGIN CERTIFICATE-----\n" \
-"MIIEZjCCAk4CFDFJOJOeCY/3NWwPFe28nvzIOCBAMA0GCSqGSIb3DQEBCwUAMIGJ\n" \
+"MIIEZjCCAk4CFD4kY82acD1Tj7gJLk5BUshDbNhYMA0GCSqGSIb3DQEBCwUAMIGJ\n" \
 "MQswCQYDVQQGEwJFVTERMA8GA1UECAwIR0lQVVpLT0ExETAPBgNVBAcMCERPTk9T\n" \
 "VElBMQwwCgYDVQQKDANBRUcxEDAOBgNVBAsMB0tBT1RJS0ExEDAOBgNVBAMMB0tB\n" \
 "T1RJS0ExIjAgBgkqhkiG9w0BCQEWE29za2FyLmNhbHZvQGFlZy5ldXMwHhcNMjQx\n" \
-"MTA1MTE0NzIxWhcNMjUxMTA1MTE0NzIxWjBVMQswCQYDVQQGEwJBVTETMBEGA1UE\n" \
+"MTA3MTA0OTEyWhcNMjUxMTA3MTA0OTEyWjBVMQswCQYDVQQGEwJBVTETMBEGA1UE\n" \
 "CAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRk\n" \
-"MQ4wDAYDVQQDDAVFU1AzMjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\n" \
-"AKzzxVqg3D+5jwCDRN+KNh5TB3GETaf6BpFVwQccHaw/G6w2mQ/8w9m7jV2i9WXX\n" \
-"UsZDZRgAMM/JXLCL9kFO9+RIAYeB449bwc0rwQYueos9PZMqwcA/cUYUNwMfJRwJ\n" \
-"hPRl86gyIiGhE1beFz4QnFPg444ZVlee7wDuKvDZJg66XbEztpliCIiKCaD49ifk\n" \
-"urpdwB6smj3O54aoQgiiVG17GUw1UTlp1YFtOwRsMFezAWf0aePljA3tHlgFugUM\n" \
-"iqycwPvqWe4ryCbdZDwk/UtMovu2wvl4MxKXwApZ3M3hoNJpqkQQw/jhTF4EebH5\n" \
-"qym7RRyH0aG81Gv3ifAPHuUCAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAzsnDwPTh\n" \
-"ZTYVyOm4g4yld0OL2IakcfnE0baV8LjGynnfJVT8jHRvU6n+GzmO09TsvkyJWxkR\n" \
-"iVl+G/TJHvg5ZARyyTyCaMcXbpLt2uLV9cQwDv98Ji+faM123bHnBWK8F2zyYd8X\n" \
-"dcL1UFlPrCQ96Kcp6H7/+FAda62AKfAzhoLXSPe3puW3M5bM9ey4wldSaVkgCiiQ\n" \
-"5izC9BvA8FCUVTk8ePW/6adHwXLq36xnkav3CXUsnzwAABlFkBCecpw6eh8Wk1bQ\n" \
-"i7UIJ3e22YqBVxiWfiY9BLd1PjsKObW4JFrM5hhO6QRKnTXo/tpsHg7yQp2rlG8n\n" \
-"q+iXLCc+sadPO0b2+0WudtRnsmOWIFnDaKULsafzufqHEc5MGBUR/QQfMIf++Pm7\n" \
-"WOiaLuRwBX5V69xMSJpUGVHU5QIaZuT6XVfc4SyUD+VV41T/ucZpvcb8zyM0WlA2\n" \
-"mEJLf06yO5dOyvmsulEyQEdX2pXefwKZRtRUKnC+Mn1xAmg+4BvtHWEfZetEVSgm\n" \
-"unhmaAxYz7UnwZfPDsAd1hdTQr86R19ojCZEmfq+H1C7wW2osIwdKW9FRysc3g+L\n" \
-"hXz91e/ZADkgnCAXbej02O6hOaUhy5D0a4gBTqQPb9hNpu7bS+i4Z+JgyQ1ECtwb\n" \
-"hje0vz27mOQAh20BR5xe4CZPNn+UVCs4HSs=\n" \
+"MQ4wDAYDVQQDDAVlc3AzMjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\n" \
+"AK8ET+EUzpEpnQIMDsSt7ziTnmw8tHAwEQvoLiWHqcTU4FNJnulz6N9b0kUqofxq\n" \
+"NwBYUpV32/c2v0vVqYvMYUurXyNcBv2J3SzhUl5KMFzZgFm/3kWXH52ThyBNTn5f\n" \
+"/6lsILPH5mdaYT+rJEJXEOlZLeSivu2A725TQ5VH/7miwBmxhZPte3pg/DGMsnuG\n" \
+"ryz0f0zPh4JwPVjmMpFnNUrhZOZzyYGXmNWIrBb1jaO/hRbp+IF89GSDdAEOoSgH\n" \
+"/BpZ3bph+sUiAZ8EZwy6mDpe19TcJNn8d0WZ5pDYzY00mECRrvXj5XO9LhXA5WHu\n" \
+"lKJ06ykah196Hn9EGZUafw0CAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAoEcSAVL8\n" \
+"m2OgIFz3GGTE3j/Dw/VqtXiJXHl7LEMuoJkE/4ii3XLSi/fHNSWm8Gq6qzNPc7IV\n" \
+"kE/7UYipQK0x603cym4lw4uRlpHeeXn6yyr9/8wtK2mLAVZjyyJn573gSF3w0kmN\n" \
+"r2uqYCa/7d7HureQGCwfd/a81hMvTCIvcRByJoIJboXz+Yjsn+hMypcGTVirS3qb\n" \
+"H6pha67CXpuQCpn5Goyl6IWMdpSbOdB3LG5WCmFxsqmSD0VgKjKMeZ7kmVr0e863\n" \
+"kmJkE+z+nJdvXfVUGiQnkADPJHzMvdwuWc2ndEAsSYgJ5aeRCAVj0O6iLCT3i8S9\n" \
+"iVZP2L+H5ChohnXtRNaPBB0+EjUnJngO7x8AzHHG/IrjsYz/tVbR4x4AV2wPO5CE\n" \
+"ea7D/f8WLG2OvDKDH8mN4piqLeeKRDzatwV6R7OsCBWiSj6ihH+FxoWHs01jHi2L\n" \
+"BMzB/0zSUa6g9/oRY6TiyNNrojrmdctHIpaQnks5RtRbNmW+wFr9+yfsACSBMqqR\n" \
+"CVOR7oERwpSxXojaZGQ75fNFAUiGm8lTy8BGoeDYlJWvTjA+ZZ+gegBQ5esVgNnv\n" \
+"da7PNMGHwZnLw/XD0QRaZxa9cCY+SXCk/mIhXSv4f8EbP6d28R1E1a3lYkfGLGTv\n" \
+"gEq7SpIijU5kXKKicJwieJ9pQLfD9F1Fwkk=\n" \
 "-----END CERTIFICATE-----\n";
 
 const char* ca_crt = \
@@ -319,37 +319,59 @@ const char* ca_crt = \
   // -------------------- //
 
   // Function to connect to Wi-Fi.
-  void setup_wifi()
-  {
-    delay(10);
+ 
+ void setup_wifi()
+{
+  // Initialize WiFi in Station mode
+  WiFi.mode(WIFI_MODE_STA);
+
+  // Define the new MAC address
+  uint8_t new_mac[] = { 0xE0, 0xE2, 0xE6, 0x0B, 0x68, 0x5C };
+
+  // Set the new MAC address
+  esp_err_t result = esp_wifi_set_mac(WIFI_IF_STA, new_mac);
+  if (result != ESP_OK) {
+    Serial.println("Failed to set MAC address");
+  } else {
+    Serial.print("Custom MAC address set to: ");
+    for(int i = 0; i < 6; i++) {
+      if(new_mac[i] < 0x10) Serial.print("0");
+      Serial.print(new_mac[i], HEX);
+      if (i < 5) Serial.print(":");
+    }
     Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.begin(ssid, password); 
-
-    int attempts = 0; 
-    while (WiFi.status() != WL_CONNECTED && attempts < 30)
-    { 
-      delay(1000);
-      Serial.print("Attempt ");
-      Serial.println(attempts);
-      Serial.println(WiFi.status()); 
-      attempts++;
-    }
-
-    if (WiFi.status() == WL_CONNECTED)
-    {
-      Serial.println("");
-      Serial.println("WiFi connected");
-      Serial.print("IP Address: ");
-      Serial.println(WiFi.localIP()); 
-    }
-    else
-    {
-      Serial.println("Failed to connect to WiFi");
-    }
   }
+
+  // Proceed with connecting to WiFi
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password); 
+
+  int attempts = 0; 
+  while (WiFi.status() != WL_CONNECTED && attempts < 30)
+  { 
+    delay(1000);
+    Serial.print("Attempt ");
+    Serial.println(attempts);
+    Serial.println(WiFi.status()); 
+    attempts++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP()); 
+  }
+  else
+  {
+    Serial.println("Failed to connect to WiFi");
+  }
+}
 
   // ---------------------------------- //
   // -----   RFID (CARD READER)   ----- //
