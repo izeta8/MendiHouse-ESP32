@@ -7,6 +7,7 @@
 #include <ArduinoJson.h>
 #include <ESP32Servo.h>
 #include <SPIFFS.h>
+#include "esp_wifi.h"  // Include ESP-IDF WiFi functions
 
 #define SS_PIN 21   // GPIO 21
 #define RST_PIN 22  // GPIO 22
@@ -314,8 +315,61 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 // -------------------- //
 
 // Function to connect to Wi-Fi.
+// void setup_wifi()
+// {
+//   delay(10);
+//   Serial.println();
+//   Serial.print("Connecting to ");
+//   Serial.println(ssid);
+
+//   WiFi.begin(ssid, password); 
+
+//   int attempts = 0; 
+//   while (WiFi.status() != WL_CONNECTED && attempts < 30)
+//   { 
+//     delay(1000);
+//     Serial.print("Attempt ");
+//     Serial.println(attempts);
+//     Serial.println(WiFi.status()); 
+//     attempts++;
+//   }
+
+//   if (WiFi.status() == WL_CONNECTED)
+//   {
+//     Serial.println("");
+//     Serial.println("WiFi connected");
+//     Serial.print("IP Address: ");
+//     Serial.println(WiFi.localIP()); 
+//   }
+//   else
+//   {
+//     Serial.println("Failed to connect to WiFi");
+//   }
+// }
+
 void setup_wifi()
 {
+  // Initialize WiFi in Station mode
+  WiFi.mode(WIFI_MODE_STA);
+
+  // Define the new MAC address
+  uint8_t new_mac[] = { 0xE0, 0xE2, 0xE6, 0x0B, 0x68, 0x5C };
+
+  // Set the new MAC address
+  esp_err_t result = esp_wifi_set_mac(WIFI_IF_STA, new_mac);
+  if (result != ESP_OK) {
+    Serial.println("Failed to set MAC address");
+  } else {
+    Serial.print("Custom MAC address set to: ");
+    for(int i = 0; i < 6; i++) {
+      if(new_mac[i] < 0x10) Serial.print("0");
+      Serial.print(new_mac[i], HEX);
+      if (i < 5) Serial.print(":");
+    }
+    Serial.println();
+  }
+
+  // Proceed with connecting to WiFi
   delay(10);
   Serial.println();
   Serial.print("Connecting to ");
@@ -345,6 +399,7 @@ void setup_wifi()
     Serial.println("Failed to connect to WiFi");
   }
 }
+
 
 // ---------------------------------- //
 // -----   RFID (CARD READER)   ----- //
